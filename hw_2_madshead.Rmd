@@ -1,0 +1,583 @@
+---
+title: "Homework 2"
+output: html_notebook
+---
+
+**Rules**:
+
+1. **The submission deadline is 13.11.2020, 23:59:59**. Your homework should be submitted to `hwdsehse@gmail.com`. **No late submissions will be accepted**;
+
+2. Every group should submit one `.Rmd` file (you should use this file to write up your homework). Submitted file should be named: `hw_2_vjacisens_ntoropov.Rmd` for the file submitted by Vitalijs Jascisens and Nikita Toropov. In the subject line you should write: hw2.
+
+3. **No plagiarism**: all sources (both offline and online have to be acknowledged). Cheating on any part of the assignment results in a **grade of zero** for the entire assignment;
+
+4. We will not be checking your code. All problems have precise answers. Only the correctness of the answer will be graded.
+
+**Name and Surname**:
+
+1. Maria Adshead (М181БМИЭФ002);
+
+2. -
+
+# Problem 1: OLS (30 points)
+
+Consider the following model:
+
+$$
+y_i = \beta_0+\beta_1x_i + \epsilon_i \\
+\mathbb{E}[\epsilon_i|x_i] = 0,\forall i\in\{1,\dots,n\} \\
+\mathbb{E}[\epsilon_i^2|x_i] = \sigma^2,\forall i\in\{1,\dots,n\}  \\
+(x_i,y_i)_{i=1}^n: \, i.i.d. \text{across i}
+$$
+
+Suppose, you are given an i.i.d sample of $(x_i,y_i)_{i=1}^n$. Consider following moment conditions:
+
+
+$$
+\mathbb{E}[\epsilon_i]=0 \,(*)\\
+\mathbb{E}[\epsilon_ix_i^2]=0 \, (**) \\
+$$
+
+
+Questions:
+
+1) Prove that moment conditions given by $(*)$ and $(**)$  are implied by our model;
+$$
+\textit{Sources: OLS Lecture https://icef-info.hse.ru/goto_icef_file_46451_download.html,}\\
+\textit{https://www.overleaf.com/learn/latex/Integrals,_sums_and_limits}\\
+\textit{https://www.overleaf.com/learn/latex/Fractions_and_Binomials}\\
+\textit{https://kogler.wordpress.com/2008/03/21/latex-multiline-equations-systems-and-matrices/}\\
+\textit{https://tex.stackexchange.com/questions/98028/bar-vs-overline-when-to-use-what-semantically}\\
+\textit{https://tex.stackexchange.com/questions/76523/how-to-typeset-converge-in-probability-in-lyx-or-latex/76524}\\
+\text{ }\\
+\text {Since }  \mathbb{E}[\epsilon_i|x_i] = 0,\forall i\in\{1,\dots,n\}, \text{by the law of iterated expectations}\\
+\mathbb{E}[{E}[\epsilon_i|x_i]]={E}[\epsilon_i]=0\\
+\mathbb{E}[{E}[\epsilon_ix_i^2|x_i]]={E}[x_i^2{E}[\epsilon_i|x_i]]={E}[\epsilon_ix_i^2]=0
+$$
+2) Derive estimators $\hat{\beta}_0$ and $\hat{\beta}_1$ corresponding to moment conditions $(*)$ and $(**)$;
+$$
+\text{We can obtain estimators }\hat{\beta}_0 \text{ and } \hat{\beta}_1 \text{ by solving the following system of equations:}\\
+\begin{cases} \frac {1}{n}\sum_{i=1}^{n}(y_i-\hat{\beta}_0-\hat{\beta}_1x_i) = 0 \\ \frac {1}{n}\sum_{i=1}^{n}x_i^2(y_i-\hat{\beta}_0-\hat{\beta}_1x_i) = 0 \end{cases}\\
+\text{Moment conditions represent population moments. We cannot calculate population characteristics, so by creating}\\
+\text{these equations above we replace population moments by their sample counterparts.}\\
+\text{from the 1st equation: } \sum_{i=1}^{n}y_i-n\hat{\beta}_0-\hat{\beta}_1\sum_{i=1}^{n}x_i=0\\
+\text{Hence, dividing by n: }\hat{\beta}_0=\bar{y}-\hat{\beta}_1\bar{x}\\
+\text{From the 2nd equation we have: }\sum_{i=1}^{n}y_ix_i^2-\hat{\beta}_0\sum_{i=1}^{n}x_i^2-\hat{\beta}_1\sum_{i=1}^{n}x_i^3=0\\
+\text{Plugging }\hat{\beta}_0 \text{ into the second equation: }\sum_{i=1}^{n}y_ix_i^2-(\bar{y}-\hat{\beta}_1\bar{x})\sum_{i=1}^{n}x_i^2-\hat{\beta}_1\sum_{i=1}^{n}x_i^3=0\\
+\sum_{i=1}^{n}y_ix_i^2-\bar{y}\sum_{i=1}^{n}x_i^2+\hat{\beta}_1\bar{x}\sum_{i=1}^{n}x_i^2-\hat{\beta}_1\sum_{i=1}^{n}x_i^3=0\\
+\hat{\beta}_1=\frac{\sum_{i=1}^{n}x_i^2y_i-\bar{y}\sum_{i=1}^{n}x_i^2}{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2}\\
+\text{Finally, the estimators are: }\begin{cases} \hat{\beta}_0=\bar{y}-\hat{\beta}_1\bar{x} \\ \hat{\beta}_1=\frac{\sum_{i=1}^{n}x_i^2y_i-\bar{y}\sum_{i=1}^{n}x_i^2}{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2} \end{cases}
+$$
+3) Is $\hat{\beta}_1$ an unbiased estimator of $\beta_1$? You should prove/disprove this claim using assumptions of the model;
+$$
+\hat{\beta}_1\text{ is a conditionally unbiased estimator of }\beta_1 \text{ if } {E}[\hat{\beta}_1|x_1,...,x_n]=\beta_1\\
+\text{First we obtain linear+noise representation of the estimator:}\\
+\hat{\beta}_1=\frac{\sum_{i=1}^{n}x_i^2y_i-\bar{y}\sum_{i=1}^{n}x_i^2}{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2}=\frac{\sum_{i=1}^{n}x_i^2(\beta_0+\beta_1x_i+\epsilon_i)-(\beta_0+\beta_1\bar{x}+\bar\epsilon)\sum_{i=1}^{n}x_i^2}{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2}=\\
+=\frac{\sum_{i=1}^{n}x_i^2\beta_0+\beta_1\sum_{i=1}^{n}x_i^3+\sum_{i=1}^{n}x_i^2\epsilon_i-\beta_0\sum_{i=1}^{n}x_i^2-\beta_1\bar{x}\sum_{i=1}^{n}x_i^2-\bar\epsilon\sum_{i=1}^{n}x_i^2}{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2}=\\
+=\frac{\beta_1(\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2)}{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2}+\frac{\sum_{i=1}^{n}x_i^2\epsilon_i-\bar\epsilon\sum_{i=1}^{n}x_i^2}{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2}=\beta_1+\frac{\sum_{i=1}^{n}x_i^2\epsilon_i-\bar\epsilon\sum_{i=1}^{n}x_i^2}{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2}\\
+\text{We proceed by taking the conditional expectation. Conditional bias is: }\\
+{E}[\hat{\beta}_1|x_1,...,x_n]-\beta_1=\frac{\sum_{i=1}^{n}x_i^2{E}[\epsilon_i|x_1,...,x_n]-\frac{\sum_{i=1}^{n}{E}[\epsilon_i|x_1,...,x_n]}{n}\sum_{i=1}^{n}x_i^2}{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2}=0\\
+{E}[\epsilon_i|x_1,...,x_n]=0 \text{ due to conditional independence assumption - } {E}[\epsilon_i|x_i] = 0,\forall i\in\{1,\dots,n\}\\
+\text{Then }{E}[\hat{\beta}_1|x_1,...,x_n]=\beta_1 \text{, e.g. we can conclude conditional unbiasedness.}\\
+\text{Via the law of iterated expectations we can move from conditional to unconditional unbiasedness: }\\
+{E}[{E}[\hat{\beta}_1|x_1,...,x_n]]=\beta_1\text{, e.g. }\hat{\beta}_1\text{ is an unbiased estimator of }\beta_1
+\text{, QED}
+$$
+4) Is $\hat{\beta}_1$ a consistent estimator of $\beta_1$? You should prove/disprove this claim using assumptions of the model;
+$$
+\text{To prove consistency we need to show that }\hat{\beta}_1\overset{p}{\to}\beta_1\\
+\text{Linear+noise representation, as found in the previous task: } \hat{\beta}_1=\beta_1+\frac{\sum_{i=1}^{n}x_i^2\epsilon_i-\bar\epsilon\sum_{i=1}^{n}x_i^2}{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2}=\beta_1+\frac{1/n(\sum_{i=1}^{n}x_i^2\epsilon_i-\bar\epsilon\sum_{i=1}^{n}x_i^2)}{1/n(\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2)}\\
+\text{Consider }\frac{\sum_{i=1}^{n}x_i^2\epsilon_i-\bar\epsilon\sum_{i=1}^{n}x_i^2}{n}=\frac{\sum_{i=1}^{n}x_i^2\epsilon_i}{n}-\frac{\bar\epsilon\sum_{i=1}^{n}x_i^2}{n}\\
+\text{By the Law of Large Numbers (LLN): }\\
+\frac{1}{n}\sum_{i=1}^{n}x_i^2\epsilon_i\overset{p}{\to}{E}[x_i^2\epsilon_i]=0 \text{ (as proven in task 1)}\\
+\frac{1}{n}\sum_{i=1}^{n}x_i^2\overset{p}{\to}{E}[x_i^2]\\
+\bar\epsilon=\frac{1}{n}\sum_{i=1}^{n}\epsilon_i\overset{p}{\to}{E}[\epsilon_i]=0 \text{ (as proven in task 1)}\\
+\text{By applying the Continuous Mapping Theorem (CMT) and LLN: }\\
+\frac{\sum_{i=1}^{n}x_i^2\epsilon_i}{n}-\frac{\sum_{i=1}^{n}\epsilon_i}{n}\frac{\sum_{i=1}^{n}x_i^2}{n}\overset{p}{\to}{E}[x_i^2\epsilon_i]-{E}[\epsilon_i]{E}[x_i^2]=0\\
+\text{Consider }\frac{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2}{n}=\frac{\sum_{i=1}^{n}x_i^3}{n}-\frac{\bar{x}\sum_{i=1}^{n}x_i^2}{n}\\
+\text{By the Law of Large Numbers (LLN): }\\
+\frac{1}{n}\sum_{i=1}^{n}x_i^3\overset{p}{\to}{E}[x_i^3] \\
+\bar{x}\overset{p}{\to}{E}[x_i]\\
+\frac{1}{n}\sum_{i=1}^{n}x_i^2\overset{p}{\to}{E}[x_i^2]\\
+\text{By applying the Continuous Mapping Theorem (CMT) and LLN: }\\
+\frac{\sum_{i=1}^{n}x_i^3}{n}-\frac{\bar{x}\sum_{i=1}^{n}x_i^2}{n}\overset{p}{\to}{E}[x_i^3]-{E}[x_i]{E}[x_i^2]={E}[x_i^2x_i]-{E}[x_i]{E}[x_i^2]=Cov(x_i^2,x_i)\\
+\text{Finally, by applying CMT and LLN to the whole expression we get:}\\
+\frac{\sum_{i=1}^{n}x_i^2\epsilon_i-\bar\epsilon\sum_{i=1}^{n}x_i^2}{\sum_{i=1}^{n}x_i^3-\bar{x}\sum_{i=1}^{n}x_i^2}\overset{p}{\to}\frac{{E}[x_i^2\epsilon_i]-{E}[\epsilon_i]{E}[x_i^2]}{Cov(x_i^2,x_i)}=0\\
+\text{Since the noise part converges to 0, we conclude that }\hat{\beta}_1\overset{p}{\to}\beta_1\text{, QED}
+$$
+5) Next, assume that the true model is as follows:
+$$
+y_i = f(x_i) + \epsilon_i \\
+\mathbb{E}[\epsilon_i|x_i] = 0,\forall i\in\{1,\dots,n\} \\
+\mathbb{E}[\epsilon_i^2|x_i] = \sigma^2,\forall i\in\{1,\dots,n\}  \\
+(x_i,y_i)_{i=1}^n: \, i.i.d. \text{across i} \\
+f() \text{: arbitrary function}
+$$
+An analyst, does not know the true model but instead estimates the following model using OLS:
+$$
+y_i = \beta_0 + \beta_1x_i+\epsilon_i
+$$
+Obtain the probability limit of an OLS estimator $\hat{\beta}_1$ in this case.
+$$
+\text{From OLS the researcher gets }\hat{\beta}_1=\frac{\sum_{i=1}^{n}(x_i-\bar{x})(y_i-\bar{y})}{\sum_{i=1}^{n}(x_i-\bar{x})^2}\\
+\text{Get linear+noise representation as follows: }\\
+\hat{\beta}_1=\frac{\sum_{i=1}^{n}(x_i-\bar{x})(y_i-\bar{y})}{\sum_{i=1}^{n}(x_i-\bar{x})^2}=\frac{\sum_{i=1}^{n}(x_i-\bar{x})y_i}{\sum_{i=1}^{n}(x_i-\bar{x})^2}=\\
+\text{(because }\bar{y}\sum_{i=1}^{n}(x_i-\bar{x})=\bar{y}(\sum_{i=1}^{n}x_i-n\bar{x})=\bar{y}(n\bar{x}-n\bar{x})=0\text{)}\\
+=\frac{\sum_{i=1}^{n}(x_i-\bar{x})(f(x_i) + \epsilon_i)}{\sum_{i=1}^{n}(x_i-\bar{x})^2}=\frac{\sum_{i=1}^{n}(x_i-\bar{x})f(x_i)}{\sum_{i=1}^{n}(x_i-\bar{x})^2}+\frac{\sum_{i=1}^{n}(x_i-\bar{x})\epsilon_i}{\sum_{i=1}^{n}(x_i-\bar{x})^2}\\
+\text{To elaborate, }\frac{\sum_{i=1}^{n}(x_i-\bar{x})f(x_i)}{\sum_{i=1}^{n}(x_i-\bar{x})^2}=\beta_1+bias, \frac{\sum_{i=1}^{n}(x_i-\bar{x})\epsilon_i}{\sum_{i=1}^{n}(x_i-\bar{x})^2} \text{ is the random component.}\\
+\text{Consider }\frac{\sum_{i=1}^{n}(x_i-\bar{x})\epsilon_i}{n}=\frac{\sum_{i=1}^{n}x_i\epsilon_i}{n}-\frac{\bar{x}\sum_{i=1}^{n}\epsilon_i}{n}\\
+\text{By LLN: }\\
+\frac{1}{n}\sum_{i=1}^{n}x_i\epsilon_i\overset{p}{\to}{E}[x_i\epsilon_i]=0 \text{ (implied by conditional independence assumption - by law of iterated expectations: }\\
+{E}[{E}[\epsilon_ix_i|x_i]]={E}[x_i{E}[\epsilon_i|x_i]]={E}[\epsilon_ix_i]=0)\\
+\bar{x}\overset{p}{\to}{E}[x_i]\\
+\frac{1}{n}\sum_{i=1}^{n}\epsilon_i\overset{p}{\to}{E}[\epsilon_i]=0 \text{ (implied by conditional independence assumption - by law of iterated expectations: }\\
+{E}[{E}[\epsilon_i|x_i]]={E}[\epsilon_i]=0)\\
+\text{By CMT and LLN: }\frac{\sum_{i=1}^{n}(x_i-\bar{x})\epsilon_i}{n}=\frac{\sum_{i=1}^{n}x_i\epsilon_i}{n}-\frac{\bar{x}\sum_{i=1}^{n}\epsilon_i}{n}\overset{p}{\to}{E}[x_i\epsilon_i]-{E}[x_i]{E}[\epsilon_i]=0\\
+\text{Consider }\frac{\sum_{i=1}^{n}(x_i-\bar{x})^2}{n}=\frac{\sum_{i=1}^{n}(x_i-\bar{x})(x_i-\bar{x})}{n}=\frac{\sum_{i=1}^{n}x_i(x_i-\bar{x})}{n}-\frac{\bar{x}\sum_{i=1}^{n}(x_i-\bar{x})}{n}=\\
+=\frac{\sum_{i=1}^{n}x_i^2}{n}-\bar{x}\frac{\sum_{i=1}^{n}x_i}{n}\\
+\text{By LLN: }\\
+\frac{1}{n}\sum_{i=1}^{n}x_i^2\overset{p}{\to}{E}[x_i^2]\\
+\bar{x}\overset{p}{\to}{E}[x_i]\\
+\frac{1}{n}\sum_{i=1}^{n}x_i\overset{p}{\to}{E}[x_i]\\
+\text{By CMT and LLN: }\frac{\sum_{i=1}^{n}(x_i-\bar{x})^2}{n}=\frac{\sum_{i=1}^{n}x_i^2}{n}-\bar{x}\frac{\sum_{i=1}^{n}x_i}{n}\overset{p}{\to}{E}[x_i^2]-{E}[x_i]{E}[x_i]=Var(x_i)\\
+\text{Finally, by applying LLN and CMT to the random component we get:}\\
+\frac{\sum_{i=1}^{n}(x_i-\bar{x})\epsilon_i}{\sum_{i=1}^{n}(x_i-\bar{x})^2}\overset{p}{\to}\frac{{E}[x_i\epsilon_i]-{E}[x_i]{E}[\epsilon_i]}{Var(x_i)}=0\\
+\text{Since the random component is convergent to 0, the estimator converges in probability to }\beta_1+bias\\
+\text{Probability limit: }\\
+\hat{\beta}_1=\frac{\sum_{i=1}^{n}(x_i-\bar{x})f(x_i)}{\sum_{i=1}^{n}(x_i-\bar{x})^2}=\frac{\sum_{i=1}^{n}(x_i-\bar{x})(f(x_i)-\bar{f(x_i))}}{\sum_{i=1}^{n}(x_i-\bar{x})^2}=\frac{\sum_{i=1}^{n}(x_i-\bar{x})(y_i-\bar{y})}{\sum_{i=1}^{n}(x_i-\bar{x})^2}=\frac{1/n(\sum_{i=1}^{n}(x_i-\bar{x})(y_i-\bar{y}))}{1/n(\sum_{i=1}^{n}(x_i-\bar{x})^2)}=\frac{Cov(X,Y)}{Var(X)}
+$$
+
+# Problem 2: Nearest Neighbors (20) points
+
+**Data**: in this problem you are going to work with `data_p_2.csv`.
+
+**Rules**: in this problem you are not allowed to use:
+
+  * Loops;
+  
+**Rules**: you can use functions only from the `base` `R` and the `data.table` package.
+
+
+**Questions**:
+
+1) Write a function, `function_knn`. As an input this function should take the row index of the dataset, k (number of neighbors) and the dataset itself. It should output the vector `y` that corresponds to `y's` of k nearest neighbors (not including the point itself). To find the distance between points `i` and `j` you should use the following distance:
+$$
+distance(i,j) = \sqrt{(x_{i1}-x_{j1})^2+(x_{i2}-x_{j2})^2+(x_{i3}-x_{j3})^2}
+$$         
+You should assume that variables in the dataset are called: `y`, `x1`,`x2`,`x3` and `index_number`;
+
+```{r}
+#Sources:
+#https://stat.ethz.ch/R-manual/R-devel/library/base/html/sort.html
+#https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html
+#https://stackoverflow.com/questions/12353820/sort-rows-in-data-table-in-decreasing-order-on-string-key-order-x-v-gives-er
+#https://stackoverflow.com/questions/6827299/r-apply-function-with-multiple-parameters
+
+function_knn<-function(j,k,data){
+  xj1<-data[index_number==j,x1]
+  xj2<-data[index_number==j,x2]
+  xj3<-data[index_number==j,x3]
+  x1<-data[,x1]
+  x2<-data[,x2]
+  x3<-data[,x3]
+  data[,distance:=((x1-xj1)^2+(x2-xj2)^2+(x3-xj3)^2)^(1/2)]
+  datasorted<-data
+  datasorted<-datasorted[order(distance,decreasing=FALSE)]
+  vec<-list(datasorted[2:(k+1),y])
+  vec<-c(vec)
+  return(vec)
+}
+```
+
+2) Apply this function on each row of the `data_p_2.csv`. Use k=3. Your vector should be stored in a new variable `knn` (that should be stored within `data`);
+
+```{r}
+#Clear everything and load needed libraries:
+rm(list=ls())
+library(data.table)
+
+#Define folders:
+dir_data<-"/Users/vitalijs/Dropbox/dse_homeworks/2020_2021/hw02"
+setwd(dir_data)
+data<-fread("data_p_2.csv")
+
+#Obtain index_number
+data[,index_number:=1:.N]
+data[,distance:=0] #for some reason the code only works with this
+
+data[,knn:=sapply(data[,index_number],function_knn,k=3,data=data)]
+```
+
+3) Next, for each observation take an average of values stored in `knn`. Call this average `yhat`;
+
+```{r}
+data[,yhat:=sapply(data[,knn],mean)]
+```
+
+4) Calculate in-sample error:
+
+$$
+\hat{MSE}_{\text{in sample}} = \frac{1}{n}\sum_{i=1}^n{(y_i - yhat_i)^2}
+$$
+
+```{r}
+mse_in_sample_3<-sum((data[,y]-data[,yhat])^2)/nrow(data)
+mse_in_sample_3
+#mse_in_sample_3<-6.804004
+```
+
+5) Repeat steps 2-4 for $k=4,5,6$. What do you conclude?
+```{r}
+data[,knn:=sapply(data[,index_number],function_knn,k=4,data=data)]
+data[,yhat:=sapply(data[,knn],mean)]
+mse_in_sample_4<-sum((data[,y]-data[,yhat])^2)/nrow(data)
+
+data[,knn:=sapply(data[,index_number],function_knn,k=5,data=data)]
+data[,yhat:=sapply(data[,knn],mean)]
+mse_in_sample_5<-sum((data[,y]-data[,yhat])^2)/nrow(data)
+
+data[,knn:=sapply(data[,index_number],function_knn,k=6,data=data)]
+data[,yhat:=sapply(data[,knn],mean)]
+mse_in_sample_6<-sum((data[,y]-data[,yhat])^2)/nrow(data)
+
+mse_in_sample_4
+mse_in_sample_5
+mse_in_sample_6
+# mse_in_sample_4<-6.903262
+# mse_in_sample_5<-7.341177
+# mse_in_sample_6<-7.261647
+```
+
+$$
+\text{Conclusion: MSE increases from k=3 to k=5 because we increase the 'diversity' of the sample, e.g. there are more values}\\
+\text{involved in counting yhat that contribute to a greater divergence from y, so MSE increases.}\\
+\text{Another explanation is that when k is small and we perform classification by nearest neigbours, there are more }\\
+\text{outliers for each group, which increases MSE because the number of neighbours is small.}\\
+\text{But when we increased k to 6 it could have happened that the boundaries for classification become more consistent, we had}\\
+\text{less outliers, hence MSE became lower. It may or not may happen that for larger k we will have a smaller MSE, }\\
+\text{because the 'groups' will start to overlap and the diversity between values will start to increase again, increasing MSE.}\\
+\text{mse_in_sample_7=7.472862, so k=6 was the optimal number minimizing MSE.}
+$$
+
+# Problem 3: Gradient Descent (20 points)
+
+**Data**: In this problem you are going to use: `data_p_3.csv`.
+
+In this problem we again work with our favorite model:
+$$
+y_i = \beta_0+\beta_1x_i + \epsilon_i \\
+\mathbb{E}[\epsilon_i|x_i] = 0,\forall i\in\{1,\dots,n\} \\
+\mathbb{E}[\epsilon_i^2|x_i] = \sigma^2,\forall i\in\{1,\dots,n\}  \\
+(x_i,y_i)_{i=1}^n: \, i.i.d. \text{across i}
+$$
+
+We want to explore algorithms that computers use to calculate estimates $\hat{\beta}_0$ and $\hat{\beta}_1$.
+
+Questions:
+
+1) We start with the method of **gradient descent**. First, we need to define an objective function and its derivatives.
+$$
+J(\hat{\beta}_0,\hat{\beta}_1) = \frac{1}{n}\sum_{i=1}^n(y_i - \hat{\beta}_0 - \hat{\beta}_1x_i)^2 \\
+\frac{\partial J(\hat{\beta}_0,\hat{\beta}_1)}{\partial \hat{\beta}_0} = -\frac{2}{n}\sum_{i=1}^n(y_i - \hat{\beta}_0 - \hat{\beta}_1x_i) \\
+\frac{\partial J(\hat{\beta}_0,\hat{\beta}_1)}{\partial \hat{\beta}_1} = -\frac{2}{n}\sum_{i=1}^n(y_i - \hat{\beta}_0 - \hat{\beta}_1x_i)x_i \\
+$$
+The gradient descent algorithm says that we can find resulting estimates by iterating following equations until convergence is reached:
+$$
+\hat{\beta}_0^{(k+1)} =  \hat{\beta}_0^{(k)} - \alpha \frac{\partial J(\hat{\beta}_0,\hat{\beta}_1)}{\partial \hat{\beta}_0}(\hat{\beta}_0^{(k)},\hat{\beta}_1^{(k)}) \\
+ = \hat{\beta}_0^{(k)} + \alpha\frac{2}{n}\sum_{i=1}^n(y_i - \hat{\beta}_0 - \hat{\beta}_1x_i) \\
+ \hat{\beta}_1^{(k+1)} =  \hat{\beta}_1^{(k)} - \alpha \frac{\partial J(\hat{\beta}_0,\hat{\beta}_1)}{\partial \hat{\beta}_1}(\hat{\beta}_0^{(k)},\hat{\beta}_1^{(k)}) \\
+ = \hat{\beta}_1^{(k)} + \alpha\frac{2}{n}\sum_{i=1}^n(y_i - \hat{\beta}_0 - \hat{\beta}_1x_i)x_i
+$$
+$\alpha$ is a "learning rate": parameter chosen by a researcher.   
+To implement this algorithm do the following:
+
+* Write a function, `function_gradient`. As inputs this function takes `b0`, `b1` and `data`. You can assume that variables in your dataset are called `y` and `x`. As output this function returns a vector of length 2 providing values for $\frac{\partial J(\hat{\beta}_0,\hat{\beta}_1)}{\partial \hat{\beta}_0}$ and $\frac{\partial J(\hat{\beta}_0,\hat{\beta}_1)}{\partial \hat{\beta}_1}$;
+
+```{r}
+function_gradient<-function(b0,b1,data){
+  n<-nrow(data)
+  y<-data[,sum(y)]
+  x<-data[,sum(x)]
+  xy<-data[,sum(data[,y]*data[,x])]
+  xsq<-data[,sum(data[,x]*data[,x])]
+  deriv0<--2/n*(y-n*b0-b1*x)
+  deriv1<--2/n*(xy-b0*x-b1*xsq)
+  vec<-c(deriv0,deriv1)
+  return(vec)
+}
+```
+* Next, implement the gradient descent algorithm.
+* Convergence criterion should be defined as follows:
+
+$$
+criterion^{(k+1)}  =max\{|\hat{\beta}_0^{(k+1)}-\hat{\beta}_0^{(k)}|,|\hat{\beta}_1^{(k+1)}-\hat{\beta}_1^{(k)}|\} 
+$$
+
+* Take $\alpha=0.01$.
+
+    
+```{r}
+#Clear everything and load needed libraries:
+rm(list=ls())
+library(data.table)
+
+#Define folders:
+dir_data<-"/Users/vitalijs/Dropbox/dse_homeworks/2020_2021/hw02"
+setwd(dir_data)
+
+#Read the data:
+data<-fread("data_p_3.csv")
+
+#Define where everything is going to be stored:
+b0<-vector()
+b1<-vector()
+
+#Initialize the algorithm:
+b0[1]<-0
+b1[1]<-0
+i<-1
+a<-0.01 #alpha
+#Define the convergence criterion:
+conv_criterion<-1000
+
+#Iterate:
+while (conv_criterion>10^-8){
+  betas<-function_gradient(b0[i],b1[i],data)
+  b0new<-b0[i]-a*betas[1]
+  b1new<-b1[i]-a*betas[2]
+  conv_criterion<-max(abs(b0new-b0[i]),abs(b1new-b1[i]))
+  i = i+1
+  b0[i]<-b0new
+  b1[i]<-b1new
+}
+
+#Obtain results:
+b0[length(b0)]
+b1[length(b1)]
+```
+
+
+2) Next, we move to the **stochastic gradient descent**. The method of **gradient descent** might take a lot of time to compute. To update values in the stochastic gradient descent algorithm one uses the following rule:
+$$
+\hat{\beta}_0^{(k+1)} =  \hat{\beta}_0^{(k)} + \alpha2(y_i - \hat{\beta}_0^{(k)} - \hat{\beta}_1^{(k)}x_i) \\
+\hat{\beta}_1^{(k+1)} = \hat{\beta}_1^{(k)} + \alpha2(y_i - \hat{\beta}_0^{(k)} - \hat{\beta}_1^{(k)}x_i)x_i
+$$
+Here you will implement a variant of this algorithm.
+
+**Algorithm**:
+
+1. Initialize:
+
+  * $\hat{\beta}_0^{(1)}=0$
+  * $\hat{\beta}_1^{(1)}=0$
+  * $\alpha=0.01$
+
+2. For $e\in\{1,100\}$:
+  * Shuffle the data;
+  * Loop over all rows of the data and update values of parameters according to the following rule:
+  
+$$
+\hat{\beta}_0^{(k+1)} =  \hat{\beta}_0^{(k)} + \alpha2(y_i - \hat{\beta}_0^{(k)} - \hat{\beta}_1^{(k)}x_i) \\
+\hat{\beta}_1^{(k+1)} = \hat{\beta}_1^{(k)} + \alpha2(y_i - \hat{\beta}_0^{(k)} - \hat{\beta}_1^{(k)}x_i)x_i
+$$  
+
+```{r}
+#Clear everything and load needed libraries:
+rm(list=ls())
+library(data.table)
+
+#Define folders:
+dir_data<-"/Users/vitalijs/Dropbox/dse_homeworks/2020_2021/hw02"
+setwd(dir_data)
+
+#Read the data:
+data<-fread("data_p_3.csv")
+
+#Define where everything is going to be stored:
+b0<-vector()
+b1<-vector()
+
+#Initialize the algorithm:
+b0[1]<-0
+b1[1]<-0
+alpha<-0.01
+
+#Implement the algorithm:
+for (e in 1:100){
+  data<-data<-data[sample(1:dim(data)[1])]
+  for (i in 1:dim(data)[1]){
+    y<-data[i,y]
+    x<-data[i,x]
+    b0new<-b0[i]+alpha*2*(y-b0[i]-b1[i]*x)
+    b1new<-b1[i]+alpha*2*(y-b0[i]-b1[i]*x)*x
+    b0[i+1]<-b0new
+    b1[i+1]<-b1new
+  }
+}
+
+#Obtain results:
+b0[length(b0)]
+b1[length(b1)]
+#Sources: materials from tutorials on datatables, instructions in RStudio (by ?function)
+```
+
+
+# Problem 4: Data Munging and OLS;
+
+In this problem you are going to work with `data_not.csv.gz` and with `data_prot.csv.gz`.
+
+* `data_not.csv.gz` contains information on a sample of procurement contracts:
+  * `number`: the purchase number;
+  * `date`: the date when the purchase was announced;
+  * `res_price`: the maximum price (in RUB) the buyer is willing to pay for a given good/service;
+  * `bid_bond`: the amount of money (in RUB) a bidder has to pay if she wants to participate in a given procurement auction;
+  * `contract_bond`: the amount of money (in RUB) the winner of the contract has to pay as a guarantee of a contract execution (to be returned later);
+  * `href`: href to the contract.
+
+* `data_prot.csv.gz` contains information on a sample of procurement contracts:
+  * `number`: the purchase number;
+  * `applicant_nr`: provides information on the number of participants. For example the value of `1&&&&2&&&&3` means that there were three participants. I.e., `applicant_nr` contains participant numbers joined by `&&&&`.If this number of missing you can assume that nobody applied to participate in a given procurement auction.
+  
+  
+**Questions**:
+
+1) Calculate how many participants were there in a given procurement auction;
+```{r}
+rm(list=ls())
+library(data.table)
+library(parallel)
+library(stringr)
+
+#Define folders:
+dir_data<-"/Users/vitalijs/Dropbox/dse_homeworks/2020_2021/hw02"
+setwd(dir_data)
+
+#Read the data:
+install.packages('R.utils')
+data_not<-fread("data_not.csv.gz",colClasses = c("character"),encoding = "UTF-8",nThread = detectCores())
+data_prot<-fread("data_prot.csv.gz",colClasses = c("character"),encoding = "UTF-8",nThread = detectCores())
+
+function_number_of_participants<-function(x){
+  if (is.na(x)==TRUE){
+    return(0)
+  } else {
+    x<-str_split(x,'&&&&')
+    x<-x[[1]]
+    return(length(x))
+  }
+}
+
+data_prot[,nr_appl:=sapply(data_prot[,applicant_nr],function_number_of_participants)]
+```
+
+2) Which month has the largest number (not sum) of procurement procedures? Use `data_not` to answer this question.
+
+```{r}
+function_month<-function(x){
+  x<-str_split(x,'-')
+  x<-x[[1]][2]
+}
+data_not[,month:=sapply(data_not[,date],function_month)]
+
+unique_month<-list(unique(data_not[,as.character(c('month'))]))
+grouped_month<-groupingsets(data_not,j = list(count=.N),by='month',sets = unique_month)
+max_month<-grouped_month$month[grouped_month$count==max(grouped_month$count)]
+
+max_month
+#max_month<-'04' (April)
+```
+
+3) Merge `data_not` and `data_prot` using `number`. Keep only contracts where you have at least one applicant (do this also for all remaining questions). Then:
+
+* Regress `log(nr_appl)` on `res_price`. What do you find? Please comment both on the economic significance and on the statistical significance.
+
+* Regress `log(nr_appl)` on `log(res_price)`. What do you find? Please comment both on the economic significance and on the statistical significance.
+
+```{r}
+#Sources: http://www.learnbymarketing.com/tutorials/linear-regression-in-r/
+dt<-merge.data.table(data_prot,data_not)
+dt<-dt[nr_appl>0]
+
+m1 = lm(log(as.numeric(nr_appl))~as.numeric(res_price), data=dt)
+summary(m1)
+#From the summary table we can get information on estimates for intercept and slope coefficients, as well as 
+#standard errors, t-values and p-values, e.g. the probabilities of getting t-values as extreme as we obtained.
+#From p-values we can find out whether the variables and coefficients are significant.
+#Below in the summary table there are significance codes: we can wee that the highest significance possible was obtained, e.g. we have p-values<0.001 and all coefficients are statistically sifnificant. The p-value of the F-statistic tells us whether the equation is significant as a whole.
+
+#Economic significance implies that the result obtained, e.g. the relatioship implied by the coefficient makes sense from the economic point of view.
+#The estimated model is as follows: log(nr_appl)=1.35-1.52e-10res_price. The coefficients can be interpreted as follows: b0=1.35 - if res_price=0, nr_appl=exp(1.35)~3.86, e.g. if a maximum price in RUB was 0, there were on average around 4 participants. This is possible, hence the intercept is economically significant.
+#b1=-1.52 - if res_price increases by 1 RUB, nr_appl decreases on average by 1.52e-8%. This makes sense from the economic point of view since when price increases, there are less buyers willing to pay it, e.g. the variable and the slope coefficient are economically significant.
+#F-statistic p-value=2.509e-10<0.001, hence the equation is statistically significant as a whole. As stated above, both the slope and the intercept have economic significance as the relationships implied by them make sense from the economic point of view, the equation is economically significant too.
+m2 = lm(log(as.numeric(nr_appl))~log(as.numeric(res_price)), data=dt)
+summary(m2)
+#Likewise, the highest significance was obtained for both the intercept and the slope, meaning that we have p-values<0.001, e.g. they are statistically significant.
+#The estimated model is as follows: log(nr_appl)=1.13+0.02log(res_price). Interpretation of the coefficients: 
+#b0=1.13 - if res_price=1, on average nr_appl=exp(1.13)~3.1. This could be possible, hence the intercept is also economically significant.
+#b1=0.02 - if res_price increases by 1%, nr_appl increases by 0.02%. This makes sense from the economic point of view, since the more applicant there are in an auction, the higher becomes the price, e.g. the variable is economically significant.
+
+#F-statistic p-value=2.2e-16 suggests that the equation as a whole is statistically significant. As follows from the discussion above, it is economically significant too as the relatioships explained by the variables do not contradict economic logic.
+```
+
+4) Next create three variables:
+  * r_bb_rp = bid_bond/res_price
+  * r_cb_rp = contract_bond/res_price
+  * d_zbb: this variable equals one if r_bb_rp>0.01 and zero otherwise;
+  * d_zcb: this variable equals one if r_cb_rp>0.05 and zero otherwise;
+
+Then regress log(nr_appl) on d_zbb and d_zcb. What do you find? Please comment both on the economic significance and on the statistical significance.
+
+```{r}
+dt[,r_bb_rp:=as.numeric(bid_bond)/as.numeric(res_price)]
+dt[,r_cb_rp:=as.numeric(contract_bond)/as.numeric(res_price)]
+dt[r_bb_rp>0.01,d_zbb:=1]
+dt[r_bb_rp<=0.01,d_zbb:=0]
+dt[r_cb_rp>0.05,d_zcb:=1]
+dt[r_cb_rp<=0.05,d_zcb:=0]
+
+m3 = lm(log(as.numeric(nr_appl))~d_zbb+d_zcb, data=dt)
+summary(m3)
+#We get that the p-value for the intercept<0.001, e.g. it is statisticallt significant, while p-values for coefficients for d_zbb and d_zcb are >0.1, e.g. not statistically significant.
+
+#The estimated model is: log(nr_appl)=1.345+0.006*d_zbb+0.004*d_zcb. Coefficients can be interpreted as follows:
+#b0=1.344 - if d_zbb=0 and d_zcb=0, on average nr_appl=exp(1.345)~3.838, e.g. if the amount of money in RUB a bidder has to pay to participate in an auction is less or equal to 1% of the maximum price in RUB the buyer is willing to pay, and the amount of money in RUB the winner of a contract has to pay for the guarantee of contract execution is less or equal to 5% of the maximum price the buyer is willing to pay in RUB, the number of participants is around 4. This is possible from the economic point of view, hence the intercept is economically significant.
+
+#b1=0.006 - if the amount of money in RUB a bidder has to pay to participate in an auction is more than 1% of the maximum price in RUB the buyer is willing to pay, but the amount of money in RUB the winner of a contract has to pay for the guarantee of contract execution is less or equal to 5% of the maximum price the buyer is willing to pay in RUB, on average nr_appl=exp(1.345+0.006)~3.861. This number is higher than in the previous case when the buyers had to pay a smaller percentage for participation, e.g. the variable is not economically significant.
+
+#b3=0.004 - if the amount of money in RUB a bidder has to pay to participate in an auction is less or equal than 1% of the maximum price in RUB the buyer is willing to pay, but the amount of money in RUB the winner of a contract has to pay for the guarantee of contract execution more than 5% of the maximum price the buyer is willing to pay in RUB, on average nr_appl=exp(1.345+0.004)~3.854. This number is higher than in the case when the buyers had to pay a smaller percentage for guarantee of execution, e.g. the variable is not economically significant.
+
+#If if the amount of money in RUB a bidder has to pay to participate in an auction is more than 1% of the maximum price in RUB the buyer is willing to pay and the amount of money in RUB the winner of a contract has to pay for the guarantee of contract execution more than 5% of the maximum price the buyer is willing to pay in RUB, on average nr_appl=exp(1.345+0.006+0.004)=4.242. This is more than in all previous cases when the buyers had to pay a lower percentage for participation and guarantee of execution, e.g. does not make sense from the economic point of view either.
+
+#F-statistic p-value of 0.2674>0.05, hence it suggests the equation is not statistically significant. As follows from the discussion of variables above, it is not economically significant either.
+```
+
+5) Next, create another variable:
+  * d_fh: this variable equals one if the contract is announced in the first six months of the year and zero otherwise.
+Estimate the following model by OLS:
+
+$$
+log(\text{nr_appl})_i = \beta_0 + \beta_1\text{d_zbb}_i+\beta_2\text{d_fh}_i+\beta_3\text{d_zbb}_i\cdot\text{d_fh}_i+\epsilon_i
+$$
+
+What do you find? Please comment both on the economic significance and on the statistical significance.
+
+```{r}
+dt[as.numeric(month)<=6,d_fh:=1]
+dt[as.numeric(month)>6,d_fh:=0]
+
+m4 = lm(log(as.numeric(nr_appl))~d_zbb+d_fh+d_fh*d_zbb, data=dt)
+summary(m4)
+#We get p-value<0.001 for the intercept, which means statistical significance, p-value<0.01 for the coefficient of
+#d_fh, meaning a lower level of significance, but the variable is still statistically significant. The remaining variables, d_zbb and d_zbb*d_fh were shown to be not statistically significant with p-values 0.2573 and 0.7025 respectively.
+#The estimated model is: log(nr_appl)=1.339+0.009*d_zbb+0.141*d_fh-0.004*d_zbb*d_fh. The coefficients can be interpreted as follows:
+
+#b0=1.339 - if the contract had not been made in the first half of the year and the amount of money in RUB a bidder has to pay to participate in an auction is less or equal to 1% of the maximum price in RUB the buyer is willing to pay, nr_appl=exp(1.339)~3.815, e.g. in the case above the number of participants is on average around 4. This is possible from the economic point of view, e.g. the intercept is economically significant.
+
+#b1=0.009 - if the amount of money in RUB a bidder has to pay to participate in an auction is more than 1% of the maximum price in RUB the buyer is willing to pay and the contract has not been made in the first half of the year, nr_appl=exp(1.339+0.009)=3.85 on average - does not make sence from the economic point of view, since the buyers have to pay more to take part in the auction, and the number is higher than in the previous case. Hence, not economically significant.
+
+#b2=0.141 - if the contract has been made in the first half of the year and the amount of money in RUB a bidder has to pay to participate in an auction is less or equal to 1% of the maximum price in RUB the buyer is willing to pay, nr_appl=exp(1.339+0.141)=4.393 on average - could be true from the economic point of view, e.g. there are more applicants willing to participate in the 1st half of the year. Conclusion: economically significant.
+
+#b3=-0.004 if the contract has been made in the first half of the year and the amount of money in RUB a bidder has to pay to participate in an auction is more than 1% of the maximum price in RUB the buyer is willing to pay, nr_appl=exp(1.339+0.009+0.141-0.004)=4.141 on average - as compared to the case of H1 and <=1%, the average number of applicants has decreased - makes sense from the economic point of view. Conclusion: economically significant.
+
+#F-statistic p-value=0.02887 means the equation is not statistically significant at 1% SL but is at 5% significance level, e.g. there is rather high statistical evidence to conclude that the equation is indeed statistically significant. As discussed above, all of the variables are economically significant, e.g. the equation can be concluded to be economically significant too. 
+```

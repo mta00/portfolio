@@ -1,0 +1,520 @@
+---
+title: "Homework 1"
+output: html_notebook
+---
+
+**Rules**:
+
+1. **The submission deadline is 26.10.2020, 23:59:59**. Your homework should be submitted to `hwdsehse@gmail.com`. **No late submissions will be accepted**;
+
+2. Every group should submit one `.Rmd` file (you should use this file to write up your homework). Submitted file should be named: `hw_1_vjacisens_ntoropov.Rmd` for the file submitted by Vitalijs Jascisens and Nikita Toropov;
+
+3. **No plagiarism**: all sources (both offline and online have to be acknowledged). Cheating on any part of the assignment results in a **grade of zero** for the entire assignment;
+
+4. We will not be checking your code. All problems have precise answers. Only the correctness of the answer will be graded.
+
+**Name and Surname**:
+
+1. Maria Adshead (3);
+
+2. Anastasia Bogoslavskaya (2).
+
+# Problem 1: XML Parsing (20 points)
+
+**Data**: In this problem you will work with the data stored in the folder `data_p_1`.
+
+**Rules:**
+Functions that you are allowed to use in this problem:
+
+  * Functions from base `R`;
+  
+  * Functions from `xml2` library;
+  
+  * Functions from `stringr` library;
+  
+  * Functions from `data.table` library.
+
+**Question**: Write a function that for a given `.xml` file does the following:
+
+1. Calculates the sum of `СумДоход` across all firms within a file;
+
+2. Calculates the sum of `СумРасход` across all firms within a file;
+
+3. The function should return a vector of length 2. The first element should be `СумДоход` across all firms within a file, the second element should be `СумРасход` across all firms within a file. When calculting both sums set `na.rm=TRUE`.
+
+```{r}
+#Load needed libraries to use in this project:
+library(xml2)
+library(stringr)
+library(data.table)
+
+#Define the working directory from which you are working:
+dir_p_1<-"/Users/vitalijs/Downloads/data_p_1"
+
+#Set the working directory:
+setwd(dir_p_1)
+
+#Your solution comes here:
+function_extract_info_fns<-function(x){
+    x<-read_xml(x)
+  dt<-data.table("СумДоход"=numeric(),"СумРасход"=numeric())
+  alldocs<-xml_children(x)
+  for (i in 2:length(alldocs)){
+    d<-xml_attrs(xml_child(xml_child(x, i), 2))[["СумДоход"]]
+    r<-xml_attrs(xml_child(xml_child(x, i), 2))[["СумРасход"]]
+    dt<-rbind(dt, data.table("СумДоход"= as.numeric(d),"СумРасход" = as.numeric(r)))
+  }
+  sumdohod<-sum(dt[,c("СумДоход")],na.rm=TRUE)
+  sumrashod<-sum(dt[,c("СумРасход")],na.rm=TRUE)
+  vec<-c(sumdohod,sumrashod)
+  return(vec)
+}
+#Sources:
+#https://www.rdocumentation.org/packages/xml2/versions/1.3.2
+#https://www.rdocumentation.org/packages/xml2/versions/1.3.2/topics/xml_children
+#https://stackoverflow.com/questions/29711377/how-do-i-initialize-an-empty-or-example-data-table
+```
+
+# Problem 2: More XML Parsing (40 points)
+
+**Data**: In this problem you will work with the data stored in folders `data_p_2_1` and `data_p_2_2`.
+
+**Rules:**
+Functions that you are allowed to use in this problem:
+
+  * Functions from base `R`;
+  
+  * Functions from `xml2` library;
+  
+  * Functions from `stringr` library;
+  
+  * Functions from `data.table` library.
+
+
+**Questions**:
+
+1. We start with the data `data_p_2_1`.Write a function that for a given `.xml` file does the following:
+  
+  * For each firm extracts:
+  
+    * `ИННФЛ`;
+    * `ИННЮЛ`;
+    * `КодРегион`;
+    * `СвОКВЭДОсн КодОКВЭД`: here you should be careful, I want you take the value with `СвОКВЭДОсн` and not with `СвОКВЭДДоп`;
+    * If there are multiple fields within a tag, combines these fields using `&&&&`;
+    * If any of above fields are missing the resulting value for that field should be `NA`.
+  
+  * Combines (by row) this information into the data.table;
+  
+  * Writes this data.table into a `.csv.gz` file (please use option `compress = "gzip"`). The name of the file should be the same as the name of an `.xml` file except that an `.xml` extension should be replaced by a `.csv.gz` extension. You should write the data directly to `data_p_2_1` folder.
+
+```{r}
+
+#Load needed libraries to use in this project:
+library(xml2)
+library(stringr)
+library(data.table)
+
+#Define the working directory from which you are working:
+dir_p_2_1<-"/Users/vitalijs/Desktop/data_p_2_1"
+
+#Set the working directory:
+setwd(dir_p_2_1)
+
+#Your solution comes here:
+function_process_one_xml<-function(x){
+  newname<-str_replace(x,'.xml','.csv.gz')
+  newnamegz<-str_glue('~/Downloads/data_p_2_1/',newname)
+  x<-read_xml(x)
+  alldoc<-xml_find_all(x,'//Документ')
+  data<-data.table(
+    "ИННЮЛ" = character(),
+    "ИННФЛ" = character(),
+    "КодРегион" = character(),
+    "КодОКВЭД" = character()
+  )
+  for (i in (1:length(alldoc))){
+    childrenlist<-xml_name(xml_children(alldoc[i]))
+    if (is.element('ОргВклМСП',childrenlist)&(is.element('ИПВклМСП',childrenlist))){
+      innul<-xml_attrs(xml_child(alldoc[[i]], 'ОргВклМСП'))[["ИННЮЛ"]]
+      innfl<-xml_attrs(xml_child(alldoc[[i]], 'ИПВклМСП'))[["ИННФЛ"]]
+    } else if (is.element('ОргВклМСП',childrenlist)){
+      innul<-xml_attrs(xml_child(alldoc[[i]], 'ОргВклМСП'))[["ИННЮЛ"]]
+      innfl<-NA
+    } else if (is.element('ИПВклМСП',childrenlist)){
+      innfl<-xml_attrs(xml_child(alldoc[[i]], 'ИПВклМСП'))[["ИННФЛ"]]
+      innul<-NA
+    } else {
+      innfl<-NA
+      innul<-NA
+    }
+    if (is.element('СведМН',childrenlist)) {
+      kod<-xml_attrs(xml_child(alldoc[[i]], 'СведМН'))[["КодРегион"]]
+    } else {
+      kod<-NA
+    }
+    if (is.element('СвОКВЭД',childrenlist)) {
+      childrenlist2<-xml_name(xml_children(xml_child(alldoc[[i]],'СвОКВЭД')))
+      if (is.element('СвОКВЭДОсн',childrenlist2)) {
+        kodokved<-xml_attrs(xml_child(xml_child(alldoc[[i]], 'СвОКВЭД'), 'СвОКВЭДОсн'))[["КодОКВЭД"]]
+      }
+    } else {
+      kodokved<-NA
+    }
+    data<-rbind(data, data.table("ИННЮЛ" = innul,"ИННФЛ" = innfl ,"КодРегион" = kod,"КодОКВЭД" = kodokved))
+  }
+  fwrite(data, file=newnamegz,compress = 'gzip')
+}
+#Sources:
+#tutorials
+#https://stackoverflow.com/questions/29711377/how-do-i-initialize-an-empty-or-example-data-table
+#https://www.c-sharpcorner.com/article/r-data-frame-operations-adding-rows-removing-rows-and-merging-two-data-frame/
+#https://www.rdocumentation.org/packages/xml2/versions/1.3.2/topics/xml_name
+#https://stackoverflow.com/questions/1169248/test-if-a-vector-contains-a-given-element
+```
+
+
+2. Next, we turn our attention to the data `data_p_2_2`. Write a function that does the following:
+
+  * Reads an `.rds` file;
+  
+  * Extracts from this file following fields:
+    
+    * `ДатаВклМСП`;
+    
+    * `КодРегион`;
+    
+    * `ИННЮЛ`;
+    
+    * `ИННФЛ`.
+
+```{r}
+#Load needed libraries to use in this project:
+library(xml2)
+library(stringr)
+library(data.table)
+
+#Define the working directory from which you are working:
+dir_p_2_2<-"/Users/vitalijs/Desktop/data_p_2_2"
+
+#Set the working directory:
+setwd(dir_p_2_2)
+
+#Your solution comes here:
+function_process_one_rds<-function(x){
+  x<-readRDS(x)
+  dt<-data.table(x)
+  if (is.element('ИННФЛ',colnames(dt))&is.element('ИННЮЛ',colnames(dt))){
+    dt<-dt[,c('ДатаВклМСП','КодРегион','ИННЮЛ','ИННФЛ')]
+  } else if (is.element('ИННФЛ',colnames(dt))){
+    dt<-dt[,c('ДатаВклМСП','КодРегион','ИННФЛ')]
+  } else if (is.element('ИННЮЛ',colnames(dt))){
+    dt<-dt[,c('ДатаВклМСП','КодРегион','ИННЮЛ')]
+  }
+}
+```
+
+3. Use `function_process_one_rds` to combine information from all files into the `data.table` and call it `data`;
+
+4. Using `data` answer following questions:
+
+  * Which region has:
+    
+    * The largest number of `ИННЮЛ`;
+    
+    * The largest number of `ИННФЛ`.
+  
+  * On which date were the maximum number of firms created.
+  
+```{r}
+data<-data.table(
+  "ДатаВклМСП" = character(),
+  "КодРегион" = character(),
+  "ИННЮЛ" = character(),
+  "ИННФЛ" = character()
+)
+
+for (i in 1:length(filenames)){
+  d<-function_process_one_rds(filenames[i])
+  data<-rbind(data,d, fill=TRUE)
+}
+data<-data[,c(5,6,7,8)]
+
+#region for largest number of innul
+
+innul_dt<-data[,c('КодРегион','ИННЮЛ')]
+innul_dt<-na.omit(innul_dt)
+
+unique_reg_innul<-list(unique(innul_dt[,as.character(c('КодРегион'))]))
+grouped_reg_innul<-groupingsets(innul_dt,j = list(count=.N),by='КодРегион',sets = unique_reg_innul)
+max_innul_count<-max(grouped_reg_innul$count)
+
+#region for largest number of innfl
+
+innfl_dt<-data[,c('КодРегион','ИННФЛ')]
+innfl_dt<-na.omit(innfl_dt)
+
+unique_reg_innfl<-list(unique(innfl_dt[,as.character(c('КодРегион'))]))
+grouped_reg_innfl<-groupingsets(innfl_dt,j = list(count=.N),by='КодРегион',sets = unique_reg_innfl)
+max_innfl_count<-max(grouped_reg_innfl$count)
+
+#on which date were the maximum number of firms created
+
+firm_creation<-data[,c('ДатаВклМСП','ИННЮЛ')]
+firm_creation<-na.omit(firm_creation)
+
+unique_date<-list(unique(firm_creation[,as.character(c('ДатаВклМСП'))]))
+grouped_date<-groupingsets(firm_creation,j = list(count=.N),by='ДатаВклМСП',sets = unique_date)
+max_firms<-max(grouped_date$count)
+
+region_max_nr_firms<-grouped_reg_innul$КодРегион[grouped_reg_innul$count==max_innul_count]
+region_max_nr_ind<-grouped_reg_innfl$КодРегион[grouped_reg_innfl$count==max_innfl_count]
+date_max_firms<-grouped_date$ДатаВклМСП[grouped_date$count==max_firms]
+#region_max_nr_firms<-'77'
+#region_max_nr_ind<-'77'
+#date_max_firms<-'01.08.2016'
+
+#Sources: (+some of the ones provided above)
+#https://rdrr.io/cran/data.table/man/groupingsets.html
+#https://stackoverflow.com/questions/7562284/extracting-unique-rows-from-a-data-table-in-r
+#https://stackoverflow.com/questions/19869145/count-number-of-records-and-generate-row-number-within-each-group-in-a-data-tabl
+```
+
+# Problem 3: Playing With JSON (20 points)
+
+**Data**: In this problem you will work with the data `data_p_3.json`.
+
+**Rules:**
+Functions that you are allowed to use in this problem:
+
+  * Functions from base `R`;
+  
+  * Functions from `xml2` library;
+  
+  * Functions from `stringr` library;
+  
+  * Functions from `data.table` library;
+  
+  * Functions from `jsonlite` library;
+  
+  * Functions from `rjson` library.
+  
+**Questions**:
+
+0. Read the data.
+
+```{r}
+#Clear everything and load needed libraries:
+rm(list=ls())
+library(data.table)
+library(jsonlite)
+
+#Define directory where the data is stored:
+dir_data<-"/users/vitalijs/Desktop"
+
+#Read the data:
+setwd(dir_data)
+data<-lapply(readLines("data_p_3.json"),fromJSON)
+```
+
+1. As you can see `data` is a complicated list. Each element of the list contains information on one ngo. Using `data` answer following questions:
+
+  * Which region has the most `ngos`;
+  
+  * Which `ngo` has received most governmental contracts (as measured by `contracts44$totalSum`). Provide the `fullName` of this ngo.
+
+```{r}
+dt<-data.table('ngo'=character(),'regionName'=character())
+
+for (i in 1:length(data)){
+  name<-data[[i]]$regionName
+  ngo<-i
+  dt<-rbind(dt, data.table("ngo" = i,"regionName" = name))
+}
+
+dt<-na.omit(dt)
+
+unique_region<-list(unique(dt[,as.character(c('regionName'))]))
+grouped_region<-groupingsets(dt,j = list(count=.N),by='regionName',sets = unique_region)
+max_ngos<-max(grouped_region$count)
+
+dt<-data.table('ngo'=character(),'contracts'=numeric(),'fullName'=character())
+
+for (i in 1:length(data)){
+  contr<-data[[i]]$incomeDetail$contracts44$totalSum
+  name<-data[[i]]$fullName
+  ngo<-i
+  dt<-rbind(dt, data.table("ngo" = i,"contracts" = as.numeric(contr),'fullName'=name))
+}
+
+max_contract<-max(dt$contracts)
+
+region_max_ngos<-grouped_region$regionName[grouped_region$count==max_ngos]
+ngo_max_contract<-dt$fullName[dt$contracts==max_contract]
+
+#region_max_ngos<-"Москва"
+#ngo_max_contract<-"МУНИЦИПАЛЬНОЕ ПРЕДПРИЯТИЕ ГОРОДА ВЛАДИВОСТОКА \"ВЛАДИВОСТОКСКОЕ ПРОИЗВОДСТВЕННОЕ ОБЪЕДИНЕНИЕ ПАССАЖИРСКОГО АВТОТРАНСПОРТА №1\""
+region_max_ngos
+ngo_max_contract
+```
+  
+2. Read the file `data_p_3.json` using `stream_in()` function from the `jsonlite` library. Using this data calculate:
+
+  * Which region has the most `ngos`;
+  
+  * Which `ngo` has received most governmental contracts (as measured by `contracts44$totalSum`). Provide the `fullname` of this ngo.
+
+```{r}
+#Sources:
+#https://www.rdocumentation.org/packages/jsonlite/versions/1.7.1/topics/stream_in%2C%20stream_out
+data_stream<-stream_in(file("data_p_3.json"))
+
+income<-data_stream[,'incomeDetail']
+contracts44<-income[,'contracts44']
+sum<-contracts44[,'totalSum']
+dt<-data.table('fullName'=data_stream[,'fullName'],'regionName'=data_stream[,'regionName'],totalSum=as.numeric(sum))
+
+unique_region<-list(unique(dt[,as.character(c('regionName'))]))
+grouped_region<-groupingsets(dt,j = list(count=.N),by='regionName',sets = unique_region)
+max_ngos<-max(grouped_region$count)
+
+max_contract<-max(dt$totalSum)
+
+region_max_ngos<-grouped_region$regionName[grouped_region$count==max_ngos]
+ngo_max_contract<-dt$fullName[dt$totalSum==max_contract]
+
+#region_max_ngos<-"Москва"
+#ngo_max_contract<-"МУНИЦИПАЛЬНОЕ ПРЕДПРИЯТИЕ ГОРОДА ВЛАДИВОСТОКА \"ВЛАДИВОСТОКСКОЕ ПРОИЗВОДСТВЕННОЕ ОБЪЕДИНЕНИЕ ПАССАЖИРСКОГО АВТОТРАНСПОРТА №1\""
+region_max_ngos
+ngo_max_contract
+```
+
+
+# Problem 4: Regular Expressions (20 points)
+
+0. Read the data.
+```{r}
+#Load needed libraries to use in this project:
+library(xml2)
+library(stringr)
+library(data.table)
+
+#Define the working directory from which you are working:
+dir_p_4<-"/users/vitalijs/Desktop"
+
+#Load the data:
+data<-read_html("plc_list.txt")
+data<-xml_text(data)
+
+#The data is displayed nicely here:
+#https://home.treasury.gov/system/files/126/plc_list.txt
+```
+**Rules:**
+Functions that you are allowed to use in this problem:
+
+  * Functions from base `R`;
+  
+  * Functions from `xml2` library;
+  
+  * Functions from `stringr` library;
+  
+  * Functions from `data.table` library.
+  
+**Questions:**
+
+1. Count the total number of individuals that are included in the list. The list starts with `ABDEL JAWAD, Nasir Abdullah Odeh` and ends with `ZEIDAN, Abdul Rahman Fahmi`. To solve this problem you should assume the following:
+
+* You should create paragraphs using `data`;
+* Each paragraph is an individual;
+* The name of an individual cannot start with `Directive`. I.e., you should remove all paragraphs that start with `Directive`;
+* The name of an individual cannot start with `_`. I.e., you should remove all paragraphs that start with `_`;
+* The name of an individual cannot start with `For further information`. I.e., you should remove all paragraphs that start with `For further information`;
+* The name of an individual cannot start with `9/16/2016`. I.e., you should remove all paragraphs that start with `9/16/2016`.
+
+```{r}
+s<-str_split(data,'\\n\n')
+d<-s[[1]]
+newlist<-list()
+
+for (i in 1:length(d)){
+  if (str_detect(d[i],"^Directive")==F&str_detect(d[i],"^_")==F&str_detect(d[i],"^For further information")==F&str_detect(d[i],"^9/16/2016")==F&str_detect(d[i],"^This publication")==F){
+    newlist<-c(newlist, d[i])
+  }
+}
+# Answer comes here:
+nr_total<-length(newlist)
+nr_total
+#Final answer:  
+#nr_total=161
+```
+
+2. Write a function that extracts the name of an individual given one paragraph. To solve this problem you should proceed as follows:
+
+* Your function should extract everything (including `\n`) from the beginning of the string until first `(a.k.a`;
+
+* If the paragraph does not contain `(a.k.a` then your function should do the following:
+
+  1. First extract everything (including `\n`) from the beginning of the string until first `;` (or the the whole string if there are no `;` in the string);
+  
+  2. Extract everything until the second `,`. If there are less than 2 comas then your function should return string from the previous step.
+  
+**Examples**:
+  
+  * `ZAHHAR, Mahmoud Khaled (a.k.a. AL ZAHAR, Mahmoud Khaled); DOB 1945\n(individual) [NS-PLC]`: your function should return `ZAHHAR, Mahmoud Khaled`;
+  
+  * `"SALEH, Mariam Mahmoud, Ramallah, West Bank, Palestinian; DOB 1952\n(individual) [NS-PLC]."`: your function should return `SALEH, Mariam Mahmoud`;
+  
+  * `SA'DAT, Ahmad; PFLP (individual) [NS-PLC]`: your function should return `SA'DAT, Ahmad`;
+
+* Finally, your function should remove (please proceed in this order):
+
+  1. `(a.k.a` at the end of the string;
+  2. `,` at the end of the string;
+  3. `;` at the end of the string;
+  4. All whitespaces at the end and beginning of the string.
+
+
+```{r}
+#Your code comes here:
+function_extract_name<-function(x){
+    if (str_detect(x,'a.k.a')==TRUE){
+    a<-str_locate(x, fixed('('))
+    name<-substr(x,1,(a-2))
+  } else if (str_detect(x,';')==TRUE){
+    a<-str_locate(x,';')
+    name0<-substr(x,1,(a-1))
+    commas<-str_locate_all(name0, fixed(','))[[1]]
+    if (length(commas)<=2){
+      name<-name0
+    } else if (length(commas)>2){
+      name<-substr(name0,1,(commas[3]-1))
+    }
+  } else if (str_detect(x,';')==FALSE){
+    name0<-x
+    commas<-str_locate_all(name0, fixed(','))[[1]]
+    if (length(commas)<=2){
+      name<-name0
+    } else if (length(commas)>2){
+      name<-substr(name0,1,(commas[3]-1))
+    }
+  }
+  return(name)
+}
+#Sources:
+#http://dept.stat.lsa.umich.edu/~jerrick/courses/stat701/notes/stringmanip.html
+```
+
+3. Write a function that extracts the year of birth of a given individual (given the paragraph). If the year of birth is not present your function should return `NA`.
+
+```{r}
+#Your code comes here:
+function_extract_yob<-function(x){
+    if (str_detect(x,fixed('9'))==TRUE){
+    a<-str_locate(x,fixed('9'))
+    yob<-substr(x,(a-1),(a+2))
+  } else {
+    yob<-NA
+  }
+  return(yob)
+}
+```

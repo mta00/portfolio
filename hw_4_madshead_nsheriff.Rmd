@@ -1,0 +1,592 @@
+---
+title: "Homework 4"
+output: html_notebook
+---
+
+**Rules**:
+
+1. **The submission deadline is 18.12.2020, 23:59:59**. Your homework should be submitted to `hwdsehse@gmail.com`. **No late submissions will be accepted**;
+
+2. Every group should submit one `.Rmd` file (you should use this file to write up your homework). Submitted file should be named: `hw_4_vjacisens_ntoropov.Rmd` for the file submitted by Vitalijs Jascisens and Nikita Toropov. In the subject line you should write: hw4.
+
+3. **No plagiarism**: all sources (both offline and online have to be acknowledged). Cheating on any part of the assignment results in a **grade of zero** for the entire assignment;
+
+4. We will not be checking your code. All problems have precise answers. Only the correctness of the answer will be graded.
+
+**Name and Surname**:
+
+1. Neil Sheriff (М181БМИЭФ248);
+
+2. Maria Adshead (М181БМИЭФ002).
+
+# Problem 1: Bootstrap (20 points)
+
+Consider the following data generating process:
+
+```{r}
+#Clear everything and load needed libraries:
+rm(list=ls())
+library(data.table)
+
+#Initialize the seed:
+set.seed(1)
+
+#Define the function generating the data:
+function_generate_data<-function(){
+  #Define the sample size:
+  n<-1000
+  
+  #Define x:
+  x<-rnorm(n)
+  
+  #Define clusters:
+  clusters<-rep(seq(1,250),each=4)
+  data<-data.table(x = x, cluster = clusters)
+  
+  #Define cluster variance:
+  data[,var_cluster:=sum(x^2),by=c("cluster")]
+
+  #Generate eps:
+  eps<-rnorm(n,sd = sqrt(data$var_cluster))
+
+  #Generate y:
+  data[,y:=1+eps]
+  
+  #Remove not needed variables from the data:
+  data[,var_cluster:=NULL]
+  rm(eps)
+  
+  #Output the data:
+  data
+}
+```
+
+**Questions**:
+
+1. Generate the data 1000 times. In each iteration:
+
+    * Estimate a linear regression of `y` on `x`; 
+
+    * Compute the 95% confidence interval;
+
+    * Store an indicator variable taking a value of 1 if 0 is within the confidence interval and 0 otherwise.
+
+    In how many cases 0 is within the confidence interval? Is it correct to do the inference in this way (please justify your answer)? 
+
+
+```{r}
+#Define a vector where we store whether 0 is within the confidence interval or not?
+reject_null<-vector()
+
+for (i in 1:1000){
+  #Generate the data:
+  data_sim<-function_generate_data()
+  
+  regression <- lm(y~x, data=data_sim)
+  low <- confint(regression, level=0.95)[2]
+  high <- confint(regression, level=0.95)[4]
+  
+  
+  reject_null[i]<-as.double((low<=0)&(high>=0))
+}
+prop.table(table(reject_null))
+
+# USING LINEAR REGRESSION REQUIRES SEVERAL ASSUMPTIONS, SOME OF WHICH ARE VIOLATED WHEN USING THIS MODEL. HERE ARE THE ONES THAT ARE VIOLATED:
+# MODEL IS MISSPECIFIED: THE SHAPE IS CHOSEN INCORRECTLY
+# NO LINEARITY: E[error term_i] = E[Y_i - a - b*X_i]. Y_i = eps_i + 1 ~ N(1,var_i); X_i ~ N(0,1). E[error term_i] = 1 - a - b*0 = 1 - a => LINEARITY ONLY HOLDS WHEN a = 1, HOWEVER WE DO NOT IMPOSE THIS RESTRICTION ON OUR MODEL
+# NO HOMOSCEDASTICITY: VAR OF ERROR TERMS CORRESPONDING TO DIFFERENT CLUSTERS WILL BE DIFFERENT, AS Ys WERE GENERATED FROM POPULATIONS WITH DIFFERENT VAR
+# NO EXOGENUITY: IF Xs IN A CLUSTER WERE VERY DIFFERENT FROM 0, THE VARIANCE OF Y, ACCORDING TO THE GENERATIONG PROCESS, WILL BE HIGH, MEANING THAT THE ERROR DEPENDS ON X AND SO THERE IS ENDOGENUITY.
+# AS A RESULT< USING A STANDARD FORMULA FOR SE IS NOT JUSTIFIED AS ITS DERIVATION IS NO LONGER VALID
+
+```
+
+
+2. Do exactly the same as in point 1 but now apply a simple non-parametric bootstrap and calculate the confidence interval via percentile method. In each iteration use 100 bootstrap replications. Is it correct to do the inference in this way (please justify your answer)?
+
+```{r}
+#Your solution comes here
+reject_null<-vector()
+B<-100
+b1_boot_np<-vector()
+for (i in 1:1000){
+  #Generate the data:
+  data_sim<-function_generate_data()
+  #non-parametric bootstrap is from icef-info
+  for (j in 1:B){
+    data_boot<-data_sim[sample(1:dim(data_sim)[1],replace=TRUE)]
+    model_boot<-lm(y~x,data=data_boot)
+    b1_boot_np[j]<-model_boot$coefficients[2]
+  }
+  quantile1 <- quantile(b1_boot_np,c(0.025,0.975))
+  low <- as.numeric(quantile1[1])
+  high <- as.numeric(quantile1[2])
+  
+  reject_null[i]<-as.double((low<=0)&(high>=0))
+}
+prop.table(table(reject_null))
+# THIS MODEL SEEMS BETTER, BUT THERE ARE STILL PROBLEMS
+# THE BOOTSTRAP REQUIRES THE DATA TO BE SIMILAR TO THE POPULATION. HOWEVER, WHEN WE TAKE A SAMPLE AS DESCRIBED IN THE MODEL WE DO NOT ACCOUNT FOR THE FACT THAT THE OBSERVATIONS FROM DIFFERENT CLUSTERS ARE DISTRIBUTED DIFFERENTLY AND IN THE POPULATION OBSERVATIONS ARE DISTRIBUTED "EVENLY" BETWEEN CLUSTERS.
+# THE NON-PARAMETRIC NOOTSTRAP REQUIRES A SAMPLE, OBSERVATIONS WITHIN WHICH ARE INDEPENDENT. HOWEVER, HERE THERE WILL BE DEPENDENCY WHEN TWO OBSERVATIONS FROM THE SAME CLUSTER APPEAR IN THE SAMPLE. IF WE LOOK AT (X1,Y1) AND (X2,Y2) (THEY ARE BOTH FROM CLUSTER 1), THEN WE CAN SEE FROM THE DATA-GENERATING PROCESS THAT Y1 DEPENDS ON X2 (THE MORE VARIANCE IN X2, THE HIGHER THE PROBABILITY OF MORE EXTREME Y)
+```
+
+3. Come up with an inference procedure that gives the correct number of 1's in the `reject_null` vector. Remark, unless you sample in a very intelligent way/use parallel computing, it might take a long time to do the computation. Test your solution on at least 100 iterations (if you do not have the time to wait for 1000).
+
+```{r}
+#Your solution comes here
+# I SUGGEST DOING A BOOTSTRAP THAT SAMPLES THE WHOLE CLUSTERS WITH REPETITIONS 
+# THIS WAY WE SAMPLE FROM AN ARRAY OF CLUSTERS AND THE CLUSTERS ARE INDEPENDNENT
+# ALSO, WE NOW ACCOUNT FOR THE FACT THAT THE OBSERVATIONS FROM DIFFERENT CLUSTERS ARE DISTRIBUTED DIFFERENTLY AND IN THE POPULATION OBSERVATIONS ARE DISTRIBUTED "EVENLY" BETWEEN CLUSTERS.
+set.seed(1)
+reject_null<-vector()
+B<-100
+b1_boot_np<-vector()
+
+helper <- function(num_clust) {
+  a <- data_sim[data_sim$cluster==num_clust]
+  #a[,cluster:=NULL]
+  #a <- as.matrix(a)
+  a
+}
+
+for (i in 1:100){
+  #Generate the data:
+  data_sim<-function_generate_data()
+  clusters <- unique(data_sim$cluster)
+  piu<-length(clusters)
+  data_boot <- data.table(x=numeric(), cluster = numeric(), y=numeric())
+  #non-parametric bootstrap is from icef-info + https://www.r-bloggers.com/2013/01/the-cluster-bootstrap/
+  for (j in 1:B){
+    
+    clusters_i <- sample(1:piu, piu, replace=TRUE)
+    for (k in 1:piu) {
+      data_boot <- rbind(data_boot,helper(clusters_i[k]))
+    }
+    #data_boot<-data_sim[,.SD[sample(1:1,replace=TRUE)],by=cluster]
+    model_boot<-lm(y~x,data=data_boot)
+    b1_boot_np[j]<-model_boot$coefficients[2]
+  }
+  quantile1 <- quantile(b1_boot_np,c(0.025,0.975))
+  low <- as.numeric(quantile1[1])
+  high <- as.numeric(quantile1[2])
+  
+  reject_null[i]<-as.double((low<=0)&(high>=0))
+}
+prop.table(table(reject_null))
+```
+
+# Problem 2: Classification (20 points)
+
+In this problem you are going to work with `data_p2_train.csv.gz` and `data_p2_test.csv.gz`.
+
+Both data-sets contain following variables:
+
+* `customer_id`: customer id;
+* `res_price`: the maximum price (in RUB) the buyer is willing to pay for a given good/service;
+* `date_publish_ym`: year and month when the auction was announced;
+* `days_to_apply`: number of days applicants are given to apply;
+* `nr_bidders`: number of bidders that applied to bid.
+
+You will evaluate all models on `data_p2_train.csv.gz` and test them on `data_p2_test.csv.gz`. As a criterion use:
+
+$$
+\frac{1}{n}\sum_{i=1}^n1(y_i\neq \hat{y}_i) \, (**)\\
+\hat{y}_i: \text{Your prediction}
+$$
+
+```{r}
+#Sources:
+#https://stackoverflow.com/questions/6827299/r-apply-function-with-multiple-parameters
+#https://www.rdocumentation.org/packages/Matrix/versions/1.2-18/topics/sparse.model.matrix
+#https://www.rdocumentation.org/packages/gamlr/versions/1.13-6/topics/cv.gamlr
+#http://finzi.psych.upenn.edu/library/gamlr/html/gamlr.html
+#https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/optim
+#https://www.rdocumentation.org/packages/gamlr/versions/1.13-6/topics/gamlr
+#https://www.rdocumentation.org/packages/ranger/versions/0.12.1/topics/ranger
+#code example on logit
+#Clear everything and load needed libraries:
+rm(list=ls())
+library(data.table)
+library(gamlr)
+library(ranger)
+
+#Define directories:
+dir_data<-"/Users/vitalijs/Dropbox/dse_homeworks/2020_2021/hw04"
+
+#Read the  data:
+setwd(dir_data)
+data_train<-fread("data_p2_train.csv.gz",colClasses = c("character"),encoding = "UTF-8")
+data_test<-fread("data_p2_test.csv.gz",colClasses = c("character"),encoding = "UTF-8")
+
+#Prepare the data a little bit:
+data_train[,res_price:=as.numeric(res_price)]
+data_train[,days_to_apply:=as.numeric(days_to_apply)]
+data_train[,nr_bidders:=as.numeric(nr_bidders)]
+
+data_train[,res_price_cat:=cut(res_price,seq(10000,500000,by=1000),include.lowest = TRUE)]
+data_train[,days_to_apply_cat:=as.factor(days_to_apply)]
+data_train[,customer_id:=as.factor(customer_id)]
+
+#Create outcome variables:
+data_train[,nr_bidders:=ifelse(is.na(nr_bidders),0,nr_bidders)]
+data_train[,y:=ifelse(nr_bidders==2,1,0)]
+
+data_test[,nr_bidders:=ifelse(is.na(nr_bidders),0,nr_bidders)]
+data_test[,y:=ifelse(nr_bidders==2,1,0)]
+
+data_test[,res_price:=as.numeric(res_price)]
+data_test[,days_to_apply:=as.numeric(days_to_apply)]
+data_test[,res_price_cat:=cut(res_price,seq(10000,500000,by=1000),include.lowest = TRUE)]
+data_test[,days_to_apply_cat:=as.factor(days_to_apply)]
+data_test[,customer_id:=as.factor(customer_id)]
+
+#1
+
+function_likelihood<-function(x){
+  beta0<-x[1]
+  beta1<-x[2]
+  beta2<-x[3]
+  x1<-data_train$res_price
+  x2<-data_train$days_to_apply
+  y<-data_train$y
+  p1<-exp(beta0+beta1*x1+beta2*x2)/(1+exp(beta0+beta1*x1+beta2*x2))
+  p0<-1-p1
+  p1[p1<=0] = 1E-10
+  p0[p0<=0] = 1E-10
+  llik = (data_train$y==1)*log(p1) + (data_train$y==0)*log(p0)
+  -sum(llik)
+}
+
+res<-optim(c(0,0,0),function_likelihood)
+b0<-as.numeric(res$par[1])
+b1<-as.numeric(res$par[2])
+b2<-as.numeric(res$par[3])
+
+function_prob<-function(x1,x2){
+  p<-exp(b0+b1*x1+b2*x2)/(1+exp(b0+b1*x1+b2*x2))
+  return(p)
+}
+
+data_test[,prob_logit:=mapply(function_prob,as.numeric(data_test[,res_price]),as.numeric(data_test[,days_to_apply]))]
+data_test[,ypred_logit:=ifelse(prob_logit>0.5,1,0)]
+data_test[,output_logit:=ifelse(y!=ypred_logit,1,0)]
+
+#2
+m<-sparse.model.matrix(~ -1 + data_train$res_price_cat + data_train$days_to_apply_cat + data_train$customer_id, data_train)
+lcv<-cv.gamlr(m,data_train$y,standardize=FALSE,select='1se')
+
+mtest<-sparse.model.matrix(~ -1 + data_test$res_price_cat + data_test$days_to_apply_cat + data_test$customer_id, data_test)
+pr_lasso<-predict(lcv,mtest,select=c('1se'))
+data_test[,prob_lasso:=as.vector(pr_lasso[,1])]
+data_test[,ypred_lasso:=ifelse(prob_lasso>0.5,1,0)]
+data_test[,output_lasso:=ifelse(y!=ypred_lasso,1,0)]
+
+#3
+set.seed(666)
+dtrain<-data_train[,c('days_to_apply','res_price','customer_id','y')]
+dtest<-data_test[,c('days_to_apply','res_price','customer_id','y')]
+
+m_forest<-ranger(y ~ .,dtrain,importance='impurity',classification=TRUE)
+pr_forest<-predict(m_forest,dtest)$predictions
+
+data_test[,yred_forest:=pr_forest]
+data_test[,output_forest:=ifelse(y!=ypred_forest,1,0)]
+
+#4
+n<-nrow(data_test)
+plogit<-sum(data_test[,output_logit])/n
+plasso<-sum(data_test[,output_lasso])/n
+pforest<-sum(data_test[,output_forest])/n
+
+#plogit<-0.44981
+#plasso<-0.4309367
+#pforest<-0.4227433
+
+#Random forest approach produced the lowest rate of wrong predictions -> best out of sample performance.
+#Assuming by data generation process the procedure of transferring the data into a database, the following 
+#can be said.
+#The data is apparently on auctions, e.g., it represents such features as reservation price, number of bidders,
+#etc. This means that since the auctions can be quite diverse, the relationship between the variables is 
+#complex and nonlinear, so that our predictions may not have an easily identifiable distribution, for which the random forest 
+#classification method is the most appropriate.
+#5
+
+#Logit
+#For logit model a threshold of 0.5 was used for assigning the value 1. One could modify this threshold 
+#so that it is close to the true probability of getting 1 so that the prediction power is improved.
+#I tried raising the threshold, which resulted in a lower error rate:
+#for threshold 0.6 the error rate decreased from 0.44981 to 0.4477333.
+#for threshold 0.7 the error rate decreased from 0.44981 to 0.44772.
+
+#One can also try performing the regression on more variables, for instance, try including nr_bidders.
+#Thus error rate was reduced from 0.44981 to 0.2894767.
+
+#Lasso
+#Likewise, we can try changing the threshold, however this did not yield any improvement: for t=0.51 the
+#error rate increased from 0.4309367 to 0.4330633, for t<-0.49 it increased to 0.43232, e.g. it increases
+#if the threshold is changed in either direction.
+
+#Further on, we can try including a new factor into the model, for instance, date_publish_ym.
+#Error rate was reduced from 0.4309367 to 0.4218033.
+#For cv.gamlr one could also specify the number of cross validation folds, however changing this parameter
+#did not yield any improvement.
+
+#Lasso model could be also improved by changing the tuning parameter lambda. For instance, by setting 
+#lambda.min.ratio-0.001, e.g. the smallest penalty weight, error rate was reduced to 0.3924133.
+#For 0.0001 this value was 0.3922233, for 0.00001 - 0.39191.
+#The code is as follows:
+#lcv2<-cv.gamlr(m2,data_train$y,standardize=FALSE,select='1se',lambda.min.ratio=0.00001)
+
+#One can also tune gamma - penalty concavity tuning parameter (default is 0). By setting gamma=1
+#error was reduced to 0.4306333, for gamma=2 - to 0.4302033, for gamma=5 - to 0.4296467.
+#lcv2<-cv.gamlr(m2,data_train$y,standardize=FALSE,select='1se',gamma=1)
+
+#pforest<-0.4227433
+#Random forest
+#Firstly, one can tune the number of trees. However, for large numbers of trees the increase in their number
+#may not yield any improvement: in our case setting num.trees to 1000 did not change anything.
+#m_forest<-ranger(y ~ .,dtrain,importance='impurity',classification=TRUE,num.trees = 1000)
+#It is possible to specify the minimal node size: for instance, by setting min.node.size=10 the error rate
+#was reduced to 0.4130967.
+#m_forest<-ranger(y ~ .,dtrain,importance='impurity',classification=TRUE,min.node.size = 10)
+```
+
+
+**Questions**:
+
+1. Run a logit model of `y` on `res_price` and `days_to_apply`. Output $(**)$ for the test data;
+
+2. Use `gamlr` package to run a lasso model of `y` on `res_price_cat`, `days_to_apply_cat` and `customer_id`. Output $(**)$ for the test data. **Notes**:
+
+    * When creating the model matrix **do not** omit any of the dummies. I.e., you have to create one dummy for each category in `res_price_cat`, one dummy for each category in `days_to_apply_cat` and one dummy for each category in `customer_id`. To create this model matrix use `sparse.model.matrix` from `Matrix` package (if you do not do that you will run out of memory);
+
+    * In `cv.gamlr` set `standardize=FALSE`;
+  
+    * To select coefficients use `select=c("1se")`.
+3. Use package `ranger` to estimate a random forest model of `y` on `res_price`, `days_to_apply` and `customer_id`. Output $(**)$ for the test data;
+
+4. Which model delivers the best out of sample performance. What can you say about the potential data generating process?
+
+5. Experiment and try to improve on above models by engineering other features.
+
+
+# Problem 3: Delta Theorem (20 points)
+
+Consider the following model:
+
+$$
+y_i = \mu + \epsilon_i \\
+\mathbb{E}[\epsilon_i] = 0\\
+\mathbb{E}[\epsilon_i^2] = \sigma^2 \\
+(y_i)_{i=1}^n: \, i.i.d. \text{across i}
+$$
+**Questions**:
+
+1. Derive method of moments estimator $\hat{\mu}$ of  $\mu$;
+
+$$
+\text{From 1st population moment: }{E}[y]=\bar{y}\\
+{E}[y]={E}[\mu+\epsilon]={E}[\mu]+{E}[\epsilon]=\mu\\
+\mu=\bar{y}, \text{hence }\hat{\mu}=\bar{y}
+$$
+
+2. Derive asymptotic distribution of $\hat{\mu}$;
+$$
+{E}[y_i]=\mu, var[y_i]=var[\mu+\epsilon_i]=var[\mu]+2cov[\mu,\epsilon_i]+var[\epsilon_i]=0+0+var[\epsilon_i]=\\
+={E}[\epsilon_i^2]-{E^2}[\epsilon_i]=\sigma^2+0=\sigma^2\\
+\
+\text{by CLT }\sqrt{n}(\bar{y}-\mu)\overset{d}{\to}N(0,\sigma^2), \bar{y}=\hat{\mu}\\
+\sqrt{n}(\hat{\mu}-\mu)\overset{d}{\to}N(0,\sigma^2)\\
+(\hat{\mu}-\mu)\overset{d}{\to}N(0,\frac{\sigma^2}{n})\\
+\hat{\mu}\overset{d}{\to}N(\mu,\frac{\sigma^2}{n})\\
+$$
+
+3. Use delta theorem to calculate the variance of $\hat{\mu}^2$.
+$$
+\hat{\mu}\text{ is the estimator of }\mu \text{ and we have the following result (as shown above):}\\
+\sqrt{n}(\hat{\mu}-\mu)\overset{d}{\to}N(0,\sigma^2)\\
+\text{For a continuosly differentiable function }\phi \text{ by Delta Theorem we have:}\\
+\sqrt{n}(\phi(\hat{\mu})-\phi(\mu))\overset{d}{\to}N(0,(\frac{d}{d\mu}\phi(\mu))^2\sigma^2)\\
+\text{Let }\phi(x)=x^2 - \text{a continuously differentiable function, then}\\
+(\frac{d}{d\mu}\phi(\mu))^2=(\frac{d}{d\mu}\mu^2)^2=(2\mu)^2=4\mu^2\\
+\sqrt{n}(\hat{\mu}^2-\mu^2)\overset{d}{\to}N(0,4\mu^2\sigma^2)\\
+(\hat{\mu}^2-\mu^2)\overset{d}{\to}N(0,\frac{4\mu^2\sigma^2}{n})\\
+\hat{\mu}^2\overset{d}{\to}N(\mu^2,\frac{4\mu^2\sigma^2}{n})\\
+var(\hat{\mu}^2)=\frac{4\mu^2\sigma^2}{n}
+$$
+
+# Problem 4: Bagging and OOB Error Manually (20 points)
+
+In this problem you are going to work with `data_p4.csv`. This data-set contains information on outcome (`y`) and 3 regressors.
+
+**Remark**:
+
+You are supposed to implement bagging and OOB manually. Please do not use specialized packages (you will be heavily penalized for that). You can use `tree` function to grow a tree.
+
+**Questions**:
+
+1. For each observation calculate bagging (with trees) prediction. Use `B = 100` bootstrap samples;
+
+
+```{r}
+#Sources:
+#https://stackoverflow.com/questions/11562656/calculate-the-mean-by-group
+#https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/names
+#Clear everything and load needed libraries:
+rm(list=ls())
+library(data.table)
+library(tree)
+
+#Set seed:
+set.seed(1)
+
+#Define directories:
+dir_data<-"/Users/vitalijs/Dropbox/dse_homeworks/2020_2021/hw04"
+# 
+#Read the data:
+setwd(dir_data)
+data<-fread("data_p4.csv")
+data[,id:=.I]
+# 
+#Define where individual predictions are going to be stored:
+y_pred_b<-list()
+trees<-list()
+bootstraps<-list()
+B<-100
+# 
+#Obtain bagging predictions:
+for (b in 1:B){
+  data_b<-data[sample(1:dim(data)[1],replace=TRUE)]
+  model_tree_b<-tree(y~x1+x2+x3,data=data_b)
+  y_pred_b[[b]]<-predict(model_tree_b,data)
+  trees[[b]]<-model_tree_b
+  bootstraps[[b]]<-data_b
+}
+
+bag<-as.data.table(y_pred_b)
+bag[,pred_final:=rowMeans(bag)]
+
+y_pred_final<-unlist(bag$pred_final)
+```
+
+2. Calculate out of bag error rate for your bagging estimator.
+
+```{r}
+oobtotal<-data.table(rn=numeric(),yoob=numeric())
+
+for (i in 1:length(bootstraps)){
+  data_oob<-subset(data,(id %in% bootstraps[[i]]$id)==FALSE)
+  yoob<-predict(trees[[i]],data_oob)
+  names(yoob)<-data_oob$id
+  oob_table<-as.data.table(yoob, data_oob$id, by=names(yoob))
+  oobtotal<-rbind(oobtotal,oob_table)
+}
+
+
+oobtotal<-oobtotal[,yoob:=as.numeric(yoob)]
+oobtotal <- oobtotal[,id:=as.numeric(rn)]
+oobtotal <- oobtotal[order(oobtotal$id)]
+agg<-aggregate(yoob ~ id, oobtotal, mean )
+data[,mean:=as.list(agg[2])]
+data[,sq_error_oob:=(y-mean)^2]
+
+mse_oob<-sum(data$sq_error_oob)/nrow(data)
+mse_oob
+#mse_oob<-3.040817
+```
+
+# Problem 5: LOOCV and KNN (20 points)
+
+In this problem you are going to work with `data_p5.csv`. This file has information on outcome `y` and one regressor.
+
+As you remember from the course when we consider the method of knn to calculate the prediction at a point $x$ we use the following formula:
+
+$$
+\hat{y} (\text{at a point x}) = \sum_{i=1}^n\hat{w}(x_i,x)y_i \\
+\hat{w}(x_i,x)= \frac{1}{k} \text{ if } x_i \text{ nearest neighbor of x} \\
+\hat{w}(x_i,x)= 0\ otherwise
+$$
+In a matrix format this can be written as:
+
+$$
+\hat{Y} = \hat{W}Y \\
+W: \text{matrix that you will have to figure out}
+$$
+Thus knn is a linear smoother (in $y$). It turns out that for linear smoothers the LOOCV MSE can be written as follows:
+$$
+MSE_{loocv} = \frac{1}{n}\sum_{i=1}^n\frac{(y_i - \hat{y}_i)^2}{(1-\hat{w}_{ii})^2} (**)\\
+\hat{w}_{ii}: \text{i'th diagonal element of W}
+$$
+In this question please use the following distance:
+
+$$
+distance(i,j) = |x_{i}-x_{j}|
+$$         
+**Note**:
+
+In this exercise as one of the nearest neighbors of $x_i$ count $x_i$.
+
+**Question**:
+
+Which $k\in{(1,2,3,4)}$ gives the smallest $MSE_{loocv}$? Use $(**)$ to answer this question.
+
+```{r}
+
+#Clear everything and load needed libraries:
+rm(list=ls())
+library(data.table)
+
+#Define where the data is stored:
+dir_data<-"/Users/vitalijs/Dropbox/dse_homeworks/2020_2021/hw04"
+
+#Read the data:
+setwd(dir_data)
+data<-fread("data_p5.csv")
+
+#fills nearest neighboor with 1/k
+filler <- function(k,vec,i) {
+  vec[i]<-1/k
+  vec
+}
+
+# creates i-th line, corresponding to w(xj,xi),(j is from 0 to 1000)
+helper <- function(k,n, index) {
+  w_i <- rep(0,n)
+  distances <- abs(data$x1-data$x1[index])
+  knn_ind <- which(distances %in% sort(distances, decreasing=FALSE)[0:k])
+  w_i <- sapply(knn_ind, filler, k=k, vec=w_i)
+  w_i <- apply(w_i,1,sum)
+  w_i
+}
+
+#gathers the lines together
+W_matrix_creator <- function(k, data) {
+
+  n <- dim(data)[1]
+  indexes <- 1:n
+  W_matrix<-sapply(indexes, helper, k=k, n=n)
+  W_matrix<-t(W_matrix)
+  W_matrix
+}
+
+# calculatesMSE
+MSE_k <- function(data,k){
+  n <- dim(data)[1]
+  W_matrixx <- W_matrix_creator(k, data)
+  y_bar <- W_matrixx %*% as.matrix(data$y)
+  mse <- 0
+  y <- data$y
+  for (i in 1:n) {
+    mse <- mse + ((y[i]-y_bar[i,1])^2)/((1-W_matrixx[i,i])^2)
+  }
+  mse <- mse/n
+}
+
+ks <- c(2,3,4)
+mse_for_each_k <- sapply(ks, MSE_k, data=data)
+paste("the k that gives min MSE is", as.character(ks[which.max(mse_for_each_k)]))
+```
+
+
+
+
+

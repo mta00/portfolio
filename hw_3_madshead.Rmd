@@ -1,0 +1,442 @@
+---
+title: "Homework 3"
+output: html_notebook
+---
+
+**Rules**:
+
+1. **The submission deadline is 29.11.2020, 23:59:59**. Your homework should be submitted to `hwdsehse@gmail.com`. **No late submissions will be accepted**;
+
+2. Every group should submit one `.Rmd` file (you should use this file to write up your homework). Submitted file should be named: `hw_3_vjacisens_ntoropov.Rmd` for the file submitted by Vitalijs Jascisens and Nikita Toropov. In the subject line you should write: hw3.
+
+3. **No plagiarism**: all sources (both offline and online have to be acknowledged). Cheating on any part of the assignment results in a **grade of zero** for the entire assignment;
+
+4. We will not be checking your code. All problems have precise answers. Only the correctness of the answer will be graded.
+
+**Name and Surname**:
+
+1. Maria Adshead (М181БМИЭФ002);
+
+2. -
+
+# Problem 1: Mixed Logit (25 points)
+
+Consider the following model:
+
+$$
+u_{i0} = \epsilon_{i0} \\
+u_{i1} = \beta_0 +\beta_{1}x_{i1}+\beta_{i2}x_{i2}+\epsilon_{i1} \\
+y_i = 1(u_{i1}\geq u_{i0}) \\
+\beta_{i2}\sim N(\mu,2^2) \\
+(\epsilon_{i0},\epsilon_{i1}) \text{: type 1 extreme value distributed error terms}
+$$
+
+To estimate this model you have to proceed as follows:
+
+*  Choice probabilities are given as follows:
+
+$$
+P(y_i= 1|\beta_{i2}) = \frac{e^{\beta_0+\beta_{1}x_{i1}+\beta_{i2}x_{i2}}}{(1+e^{\beta_0+\beta_{1}x_{i1}+\beta_{i2}x_{i2}})} \\
+P(y_i= 1) = \int (P(y_i= 1|\beta_{i2}))f(\beta_{i2})d\beta_{i2}
+$$
+
+* It turns out that you can approximate the above integral using the following expression:
+
+$$
+P(y_i= 1) \approx \frac{1}{R}\sum_{r=1}^R \frac{e^{\beta_0+\beta_{1}x_{i1}+\beta_{i2}^{(r)}x_{i2}}}{(1+e^{\beta_0+\beta_{1}x_{i1}+\beta_{i2}^{(r)}x_{i2}})}
+$$
+
+
+This is how you should understand the previous expression:
+
+1. Draw $n$ (where $n$ is the dimension of the data) random variables from $N(\mu,2^2)$. Plug these for $\beta_{i2}^{(r)}$. Given this you have one estimate of $P(y_i= 1)$ for all individuals;
+2. Do that $R$ times. Then, for a given individual, take an average across $R$ probabilities to obtain $P(y_i= 1)$;
+3. When doing MLE estimation choose following starting values:
+    * $\beta_0$ = 0;
+    * $\beta_1$ = 0;
+    * For $\mu$ please check all starting values from 0 to 3 with an interval of 0.5.
+4. Use $R=100$;
+5. For optimization use ```optimx``` package.
+
+**Questions**:
+
+* You are given the data, ```data_p1.csv```. Find MLE estimates of $\hat{\beta}_0$, $\hat{\beta}_1$ and $\hat{\mu}$. Here you need to select $\hat{\beta}_0$, $\hat{\beta}_1$ and $\hat{\mu}$ that correspond to the largest value of a log-likelihood or to the smallest value of a minus log-likelihood.
+
+```{r}
+#https://www.quora.com/Why-and-when-do-we-use-a-replicate-function-in-R
+#logit example file
+rm(list=ls())
+library(data.table)
+library(optimx)
+
+#Read the data:
+setwd("/Users/vitalijs/Dropbox/dse_homeworks/2020_2021/hw03")
+data<-fread("data_p1.csv")
+
+#Define n and R
+set.seed(1)
+n<-nrow(data)
+R<-100
+
+#Define the likelihood function:
+function_likelihood<-function(x){
+  beta0<-x[1]
+  beta1<-x[2]
+  mu<-x[3]
+  x1<-data$x1
+  x2<-data$x2
+  y<-data$y
+  p1<-rep(0,n)
+  for (i in 1:R) {
+    beta2<-rnorm(n,mu,2)
+    p1<-p1+exp(beta0+beta1*x1+beta2*x2)/(1+exp(beta0+beta1*x1+beta2*x2))
+  }
+  p1<-p1/R
+  p0<-1-p1
+  p1[p1<=0] = 1E-10
+  p0[p0<=0] = 1E-10
+  llik = (data$y==1)*log(p1) + (data$y==0)*log(p0)
+  -sum(llik)
+}
+
+#Evaluate for some starting values:
+optimx(c(0,0,0),function_likelihood)
+optimx(c(0,0,0.5),function_likelihood)
+optimx(c(0,0,1),function_likelihood)
+optimx(c(0,0,1.5),function_likelihood)
+optimx(c(0,0,2),function_likelihood)
+optimx(c(0,0,2.5),function_likelihood)
+optimx(c(0,0,3),function_likelihood)
+```
+
+
+# Problem 2: Logit Details (25 points)
+
+**Data**: In this problem you are going to work with ```data_p2.csv```.
+
+**Questions**:
+
+Consider two logit models:
+
+1. One in which you use both predictors ```x1``` and ```x2``` (and a constant) to predict ```y```;
+2. Second in which you use only ```x1``` (and a constant)  to predict ```y```.
+
+Which of them has a larger area under the curve? Draw ROC curve for threshold values in ```seq(0,1,by=0.01)```. Note: in this question you are not asked to numerically evaluate the integral (to calculate the area under the curve), visual inspection will suffice.
+
+```{r}
+#https://www.rdocumentation.org/packages/data.table/versions/1.13.2/topics/fifelse
+#https://www.datamentor.io/r-programming/plot-function/
+#http://www.sthda.com/english/wiki/abline-r-function-an-easy-way-to-add-straight-lines-to-a-plot-using-r-software
+rm(list=ls())
+library(data.table)
+library(optimx)
+
+#Read the data:
+setwd("/Users/vitalijs/Dropbox/dse_homeworks/2020_2021/hw03")
+data<-fread("data_p2.csv")
+
+values<-seq(0,1,by=0.01)
+
+function_likelihood1<-function(x){
+  beta0<-x[1]
+  beta1<-x[2]
+  beta2<-x[3]
+  x1<-data$x1
+  x2<-data$x2
+  y<-data$y
+  p1<-exp(beta0+beta1*x1+beta2*x2)/(1+exp(beta0+beta1*x1+beta2*x2))
+  p0<-1-p1
+  p1[p1<=0] = 1E-10
+  p0[p0<=0] = 1E-10
+  llik = (data$y==1)*log(p1) + (data$y==0)*log(p0)
+  -sum(llik)
+}
+
+optimx(c(0,0,0),function_likelihood1)
+
+res1<-optimx(c(0,0,0),function_likelihood1)
+b0<-as.numeric(res1[1,1:3][1])
+b1<-as.numeric(res1[1,1:3][2])
+b2<-as.numeric(res1[1,1:3][3])
+
+roc1<-data.table(
+  t = values,
+  truepos = numeric(),
+  falsepos = numeric()
+)
+
+function_truepos1<-function(t){
+  data[,ypr:=0]
+  data[,ypr:=fifelse(exp(b0+b1*x1+b2*x2)/(1+exp(b0+b1*x1+b2*x2))>t,1,0)]
+  dtrue0<-data[y==1]
+  dtrue1<-dtrue0[ypr==1]
+  truepos<-nrow(dtrue1)/nrow(dtrue0)
+  return(truepos)
+}
+
+function_falsepos1<-function(t){
+  data[,ypr:=0]
+  data[,ypr:=fifelse(exp(b0+b1*x1+b2*x2)/(1+exp(b0+b1*x1+b2*x2))>t,1,0)]
+  dfalse0<-data[y==0]
+  dfalse1<-dfalse0[ypr==1]
+  falsepos<-nrow(dfalse1)/nrow(dfalse0)
+  return(falsepos)
+}
+
+roc1[,truepos:=sapply(roc1[,t],function_truepos1)]
+roc1[,falsepos:=sapply(roc1[,t],function_falsepos1)]
+
+function_likelihood2<-function(x){
+  beta0<-x[1]
+  beta1<-x[2]
+  x1<-data$x1
+  x2<-data$x2
+  y<-data$y
+  p1<-exp(beta0+beta1*x1)/(1+exp(beta0+beta1*x1))
+  p0<-1-p1
+  p1[p1<=0] = 1E-10
+  p0[p0<=0] = 1E-10
+  llik = (data$y==1)*log(p1) + (data$y==0)*log(p0)
+  -sum(llik)
+}
+
+optimx(c(0,0),function_likelihood2)
+
+res2<-optimx(c(0,0),function_likelihood2)
+b0<-as.numeric(res2[1,1:2][1])
+b1<-as.numeric(res2[1,1:2][2])
+
+roc2<-data.table(
+  t = values,
+  truepos = numeric(),
+  falsepos = numeric()
+)
+
+function_truepos2<-function(t){
+  data[,ypr:=0]
+  data[,ypr:=fifelse(exp(b0+b1*x1)/(1+exp(b0+b1*x1))>t,1,0)]
+  dtrue0<-data[y==1]
+  dtrue1<-dtrue0[ypr==1]
+  truepos<-nrow(dtrue1)/nrow(dtrue0)
+  return(truepos)
+}
+
+function_falsepos2<-function(t){
+  data[,ypr:=0]
+  data[,ypr:=fifelse(exp(b0+b1*x1)/(1+exp(b0+b1*x1))>t,1,0)]
+  dfalse0<-data[y==0]
+  dfalse1<-dfalse0[ypr==1]
+  falsepos<-nrow(dfalse1)/nrow(dfalse0)
+  return(falsepos)
+}
+
+roc2[,truepos:=sapply(roc2[,t],function_truepos2)]
+roc2[,falsepos:=sapply(roc2[,t],function_falsepos2)]
+
+plot(roc1$falsepos,roc1$truepos,type='l',col='purple',xlab='False positive',ylab = 'True positive',main='ROC curves for logit models with 2 and 1 predictors')
+lines(roc2$falsepos,roc2$truepos,type='l',col='pink')
+abline(0,1)
+legend('bottomright',c("ROC 2 pred","ROC 1 pred"),
+       fill=c("purple","pink"))
+
+#The ROC for the first case (with two regressors) has a bigger area under the curve.
+```
+
+# Problem 3: Even More Logit Details (25 points)
+
+**Data**: in this problem you are going to work with the data located in the folder ```data_p3```. Each file in ```data_p3``` contains one observation of ```y```, ```x1``` and ```x2```.
+
+From the class we know that the logit sample likelihood function can be written in the following way:
+
+$$
+llik = \sum_{i=1}^nlog(P(y_i=1|x_{i1},x_{i2};\beta_0,\beta_1,\beta_2)^{y_i}P(y_i=0|x_{i1},x_{i2};\beta_0,\beta_1,\beta_2)^{1-y_i})
+$$
+This representation allows researchers to calculate the sample likelihood incrementally. I.e., one does not need to load the whole dataset into the memory but can proceed row by row.
+
+
+**Question**: Obtain estimates $\hat{\beta}_0$, $\hat{\beta}_1$ and $\hat{\beta}_2$ by proceeding in a row by row fashion.
+
+
+```{r}
+#Clear everything and load needed libraries:
+rm(list=ls())
+library(optimx)
+library(data.table)
+library(stringr)
+
+#Define where the data is goint to be stored:
+dir_data<-"/Users/vitalijs/Dropbox/dse_homeworks/2020_2021/hw03/data_p3"
+
+#!!! This function takes a long time to optimize...
+
+#Define likelihood function:
+llik_function<-function(x){
+  #Define parameters:
+  b0<-x[1]
+  b1<-x[2]
+  b2<-x[3]
+  
+  #Define where the sample log likelihood is going to be stored:
+  llik_sample<-vector()
+  
+  #Obtain files to loop over:
+  setwd(dir_data)
+  files_to_loop<-list.files()
+  
+  #Loop over files:
+  for (ftl in files_to_loop){
+    data_aux<-fread(ftl)
+    x1<-data_aux$x1
+    x2<-data_aux$x2
+    y<-data_aux$y
+    
+    #Calculate likelihood for a particular obsevation:
+    p1<-exp(b0+b1*x1+b2*x2)/(1+exp(b0+b1*x1+b2*x2))
+    p0<-1-p1
+    
+    p1[p1<=0] = 1E-10
+    p0[p0<=0] = 1E-10
+    
+    llik_observation<-y*log(p1) + (1-y)*log(p0)
+    llik_sample[match(ftl,files_to_loop)]<-llik_observation
+    
+  }
+  
+  #Proceed here:
+  return(-sum(llik_sample))
+}
+
+optimx(c(0,0,0),llik_function)
+```
+
+# Problem 4: LDA and QDA (25 points)
+
+**Data**: in this problem you are going to work with ```data_p4.csv```. This file has information on ```y``` and ```x1```.
+
+In the class we have shown that in LDA method we first calculate the following object:
+
+$$
+P(Y=k|X=x) = \frac{\pi_kf_k(x)}{\sum_{l=1}^K\pi_lf_l(x)} \,(*) \\ 
+f_k(x) = \frac{1}{\sigma\sqrt{(2\pi)}}e^{-\frac{1}{2\sigma^2}(x-\mu_k)^2}
+$$
+Then, we classify $Y$ as:
+
+$$
+(Y|X=x) = argmax_k(P(Y=k|x=x))
+$$
+
+
+Similarly, when doing QDA,we first calculate the following object:
+
+$$
+P(Y=k|X=x) = \frac{\pi_kf_k(x)}{\sum_{l=1}^K\pi_lf_l(x)} \,(**)\\
+f_k(x) = \frac{1}{\sigma_k\sqrt{(2\pi)}}e^{-\frac{1}{2\sigma_k^2}(x-\mu_k)^2}
+$$
+
+Then, we classify $Y$ as:
+
+$$
+(Y|X=x) = argmax_k(P(Y=k|x=x))
+$$
+
+**Questions**:
+
+1. Implement LDA "manually":
+    * Calculate all $\mu_k$'s;
+    * Calculate $\sigma^2$ (please use unbiased estimator of the sample variance);
+    * Use ``dnorm`` to calculate the appropriate density;
+    * Use expression $(*)$ to obtain $P(Y=k|X=x)$;
+    * Obtain prediction for each observation in the dataset as: $(Y|X=x) = argmax_k(P(Y=k|x=x))$.
+```{r}
+#Your solution
+
+#mus:
+mu0<-sum(data[y==0,x1])/nrow(data[y==0])
+mu1<-sum(data[y==1,x1])/nrow(data[y==1])
+#sigma squared:
+sigma2<-(sum(data[y==1,(x1-mu1)^2])+sum(data[y==0,(x1-mu0)^2]))/(nrow(data)-2)
+
+#probabilities of each class in the sample:
+pi0<-nrow(data[y==0])/nrow(data)
+pi1<-nrow(data[y==1])/nrow(data)
+
+function_proby0<-function(x){
+  p0<-pi0*dnorm(x,mean=mu0,sd=sqrt(sigma2),log=FALSE)
+  p1<-pi1*dnorm(x,mean=mu1,sd=sqrt(sigma2),log=FALSE)
+  sum<-p0+p1
+  proby0<-p0/sum
+}
+
+function_proby1<-function(x){
+  p0<-pi0*dnorm(x,mean=mu0,sd=sqrt(sigma2),log=FALSE)
+  p1<-pi1*dnorm(x,mean=mu1,sd=sqrt(sigma2),log=FALSE)
+  sum<-p0+p1
+  proby0<-p1/sum
+}
+
+data[,proby0:=sapply(data[,x1],function_proby0)]
+data[,proby1:=sapply(data[,x1],function_proby1)]
+
+#prediction
+data[,pred:=fifelse(proby1>proby0,1,0)]
+```
+2. Implement QDA "manually":
+    * Calculate all $\mu_k$'s;
+    * Calculate all $\sigma_k^2$'s (please use unbiased estimator of the sample variance);
+    * Use ``dnorm`` to calculate the appropriate density;
+    * Use expression $(**)$ to obtain $P(Y=k|X=x)$;
+    * Obtain prediction for each observations in the dataset as: $(Y|X=x) = argmax_k(P(Y=k|x=x))$.
+```{r}
+#Your solution
+
+#mus:
+mu0<-sum(data[y==0,x1])/nrow(data[y==0])
+mu1<-sum(data[y==1,x1])/nrow(data[y==1])
+
+#sigmas:
+sigma20<-sum(data[y==0,(x1-mu0)^2])/(nrow(data[y==0])-1)
+sigma21<-sum(data[y==1,(x1-mu1)^2])/(nrow(data[y==1])-1)
+
+pi0<-nrow(data[y==0])/nrow(data)
+pi1<-nrow(data[y==1])/nrow(data)
+
+function_proby0q<-function(x){
+  p0<-pi0*dnorm(x,mean=mu0,sd=sqrt(sigma20),log=FALSE)
+  p1<-pi1*dnorm(x,mean=mu1,sd=sqrt(sigma21),log=FALSE)
+  sum<-p0+p1
+  proby0<-p0/sum
+}
+
+function_proby1q<-function(x){
+  p0<-pi0*dnorm(x,mean=mu0,sd=sqrt(sigma20),log=FALSE)
+  p1<-pi1*dnorm(x,mean=mu1,sd=sqrt(sigma21),log=FALSE)
+  sum<-p0+p1
+  proby0<-p1/sum
+}
+
+data[,proby0qda:=sapply(data[,x1],function_proby0q)]
+data[,proby1qda:=sapply(data[,x1],function_proby1q)]
+
+#predictions:
+data[,predqda:=fifelse(proby1qda>proby0qda,1,0)]
+```
+3. Which model has a better out of sample explanatory power? Use LOOCV criterion to answer this question. As a criterion use:
+
+$$
+\frac{1}{n}\sum_{i=1}^n(y_i\neq \hat{y}_i) \\
+\hat{y}_i: \text{Your prediction}
+$$
+```{r}
+#Your solution
+data[,loocv1:=fifelse(y==pred,0,1)]
+data[,loocv2:=fifelse(y==predqda,0,1)]
+
+crit1<-sum(data[,loocv1])/nrow(data)
+crit2<-sum(data[,loocv2])/nrow(data)
+#crit1<-0.193
+#crit2<-0.193
+#Both models have an equally low explanatory power.
+```
+
+ 
+
