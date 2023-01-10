@@ -15,9 +15,7 @@ output: html_notebook
 
 **Name and Surname**:
 
-1. Neil Sheriff (М181БМИЭФ248);
-
-2. Maria Adshead (М181БМИЭФ002).
+1. Maria Adshead (М181БМИЭФ002).
 
 # Problem 1: Bootstrap (20 points)
 
