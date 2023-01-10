@@ -17,8 +17,6 @@ output: html_notebook
 
 1. Maria Adshead (3);
 
-2. Anastasia Bogoslavskaya (2).
-
 # Problem 1: XML Parsing (20 points)
 
 **Data**: In this problem you will work with the data stored in the folder `data_p_1`.
